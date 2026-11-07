@@ -23,7 +23,19 @@ pnpm run build
 ## GitHub Pages
 
 リポジトリの Settings → Pages → Build and deployment → Source を **GitHub Actions** に設定してください。
-`main` への push でビルド・公開します。プルリクエストでは型チェックとビルドを実行します。
+`main` への push・プルリクエストでは型チェックとビルドのみを実行します。
+GitHub Releases の **Publish release**（`release.published`）で、そのリリースのタグが指すコミットをビルドして公開します。
+下書き保存・タグの push だけでは公開しません。手動デプロイ（Run workflow）はありません。
+公開されたプレリリースも `published` に含まれます。
+
+### リリース手順
+
+1. `main` の Actions で型チェックとビルドの成功を確認します。
+2. Releases → Draft a new release で、公開対象コミットに新しいタグ（例：`v0.2.0`）を作ります。
+3. 内容を確認して **Publish release** を押します。
+4. Actions の `Validate and release to GitHub Pages` で build・deploy の成功を確認します。
+
+初回はこのワークフロー変更を含むコミット以降からタグを作ってください。公開中のサイトは、次のリリースのデプロイ成功までそのままです。
 
 公開先: https://firstTimeFreeNow.github.io/UDM/
 
@@ -43,3 +55,9 @@ GitHub 連携からのコミットは `firstTimeFreeNow` アカウントで作�
 - 未生成の `/UDM/routing/not-generated/` は 404 です。
 
 Session Storage は同一オリジン・同一タブのセッション内の保存です。通常のタブ終了で破棄されますが、タブの複製・復元ではコピーや復元が発生する場合があります。サーバーへの保存や長期保存ではありません。
+
+## UI
+
+shadcn/ui（Radix / Nova、neutral テーマ）を使用しています。
+公式 CLI で生成したコンポーネントは `components/ui/`、設定は `components.json` にあります。
+ボタン・カード・テキスト入力・ラベル・通知・バッジ・区切り線に利用しています。

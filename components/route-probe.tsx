@@ -1,5 +1,9 @@
 "use client";
 
+import { Panel } from "@/components/panel";
+import { Button } from "@/components/ui/button";
+
+
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -15,12 +19,12 @@ export default function RouteProbe() {
     window.udmDocumentId ??= crypto.randomUUID();
     setDocumentId(window.udmDocumentId); setUrl(window.location.href);
   }, [pathname, params]);
-  return <section className="card"><h2>現在のルート</h2><dl>
+  return <Panel title={<>現在のルート</>}><dl>
     <dt>パス（basePath を除く）</dt><dd data-testid="route-path">{pathname}</dd>
     <dt>クエリ</dt><dd data-testid="route-query">{params.toString() || "（なし）"}</dd>
     <dt>現在の URL</dt><dd>{url || "確認中…"}</dd>
     <dt>ドキュメント ID</dt><dd data-testid="document-id">{documentId}</dd>
   </dl><p className="small">Link で移動するとドキュメント ID は同じです。再読み込み・直接アクセスでは新しい ID になります。戻る・進むでブラウザーのキャッシュが復元された場合は元の ID に戻ることがあります。</p>
-  <div className="actions"><button className="secondary" onClick={() => router.back()}>戻る</button><button className="secondary" onClick={() => router.forward()}>進む</button><button className="secondary" onClick={() => window.location.reload()}>このページを再読み込み</button></div>
-  </section>;
+  <div className="actions"><Button variant="outline" onClick={() => router.back()}>戻る</Button><Button variant="outline" onClick={() => router.forward()}>進む</Button><Button variant="outline" onClick={() => window.location.reload()}>このページを再読み込み</Button></div>
+  </Panel>;
 }

@@ -1,18 +1,19 @@
-name: Deploy Next.js to GitHub Pages
+name: Validate and release to GitHub Pages
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  group: pages-${{ github.event_name == 'release' && 'production' || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
 
 jobs:
   build:
@@ -20,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
       - name: Set up Node.js
@@ -34,13 +37,13 @@ jobs:
       - name: Build static site
         run: pnpm run build
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'release' && github.event.action == 'published'
         uses: actions/upload-pages-artifact@v5
         with:
           path: out
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'release' && github.event.action == 'published'
     needs: build
     runs-on: ubuntu-latest
     permissions:
