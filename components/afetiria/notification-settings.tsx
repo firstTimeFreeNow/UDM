@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { pushSetupMessage } from "@/lib/afetiria/push-registration";
 import { ApiError, callApi } from "@/lib/udm-api/client";
 import { deleteDevicePushToken, getDevicePushToken, isPushStatus, PUSH_TOKEN_KEY, type PushStatus } from "@/lib/afetiria/push";
@@ -66,7 +67,13 @@ export function NotificationSettings() {
   }
   return <section className={styles.card} aria-labelledby="af-notifications"><h2 id="af-notifications">開催通知</h2>
     <p>開催日時が決まったとき、この端末に通知します。通知を有効にすると、画面を閉じている間も受信できます。</p>
-    <p>受信する端末・ブラウザーごとに設定し、ブラウザーとOSの通知を許可してください。iPhone・iPad（iOS／iPadOS 16.4以降）は、Safariの共有メニューから「ホーム画面に追加」し、追加したアイコンから開いて設定してください。</p>
+    <p>受信する端末・ブラウザーごとに設定してください。ブラウザーで通知を許可していても、OS側の通知がオフだと表示されません。</p>
+    <p>Windowsでは「設定 → システム → 通知」で、通知全体と使用中のChrome／Edgeの通知をオンにしてください。「通知バナーを表示する」「通知センターに通知を表示する」もオンにし、「応答不可」はオフにしてください。</p>
+    <figure style={{margin:0}}>
+      <Image src="/UDM/afetiria-extra/windows-chrome-notifications.png" alt="Windowsの通知設定でGoogle Chromeの通知がオンになっている例" width={672} height={65} style={{maxWidth:"100%",height:"auto"}} />
+      <figcaption>Windowsの通知設定例（Google Chrome）</figcaption>
+    </figure>
+    <p>iPhone・iPad（iOS／iPadOS 16.4以降）は、Safariの共有メニューから「ホーム画面に追加」し、追加したアイコンから開いて設定してください。</p>
     {(!configured || status && !status.ready) && <p>通知機能は準備中です。準備が完了すると、ここから有効にできます。</p>}
     {!supported && <p>このブラウザーでは通知を利用できません。対応ブラウザーで開いてください。iPhone・iPadはホーム画面への追加を先に行ってください。</p>}
     {denied && <p>通知がブロックされています。ブラウザーのサイト設定から通知を許可してください。</p>}
