@@ -64,7 +64,7 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
   const properties = { getProperty: key => values.get(key) ?? null, setProperty: (key, value) => values.set(key,value), deleteProperty: key => values.delete(key), getProperties: () => Object.fromEntries(values) };
   let locked = false;
   const sent=[]; const sendResults=[];
-  const fcmResponse = code => ({getResponseCode: () => code, getContentText: () => JSON.stringify(code===404 ? {error:{details:[{errorCode:'UNREGISTERED'}]}} : {})});
+  const fcmResponse = code => ({getResponseCode: () => code, getContentText: () => JSON.stringify(code===200 ? {name:'projects/fixture-project/messages/message_123'} : code===404 ? {error:{details:[{errorCode:'UNREGISTERED'}]}} : {})});
   const context = vm.createContext({ Date, Set, Map, Number, JSON, Object, console: {log(){}, warn(){}},
     ScriptApp: {getOAuthToken: () => 'private-owner-access-token'},
     PropertiesService: {getScriptProperties: () => properties, getDocumentProperties: () => ({getProperty: () => null})},
@@ -386,4 +386,23 @@ test('failed test sends report failure and interrupted sends cannot be replayed 
   g.context.UrlFetchApp.fetchAll=()=>{throw Error('private-device-token')};
   assert.equal(g.call('af.push.test',{title:'テスト',body:'本文'},'admin').error.code,'INTERNAL_ERROR');
   assert.equal(g.call('af.push.test',{title:'テスト',body:'本文'},'admin').error.code,'CONFLICT');
+});
+
+
+test('FCM acceptance requires a message ID from the requested project; diagnostic output excludes device tokens and free text', () => {
+  for (const responseBody of [{}, {name:'projects/other/messages/id'}, {name:'projects/fixture-project/messages/'}, null]) {
+    const f=fixture();f.context.initializePushNotifications();f.call('af.push.subscribe',{token:deviceToken});
+    f.context.UrlFetchApp.fetchAll=()=>[{getResponseCode:()=>200,getContentText:()=>JSON.stringify(responseBody)}];
+    const result=f.call('af.push.test',{title:'private-title',body:'private-body'},'admin');
+    assert.equal(result.data.accepted,0);assert.equal(result.data.failed,1);
+    const diagnostic=f.context.diagnosePushNotifications();
+    assert.equal(diagnostic.lastAttempt.httpStatus,200);assert.equal(diagnostic.lastAttempt.messageId,null);
+    assert.equal(diagnostic.lastAttempt.validateOnly,false);
+    for (const secret of [deviceToken,'private-title','private-body','private-owner-access-token']) assert.equal(JSON.stringify(diagnostic).includes(secret),false);
+  }
+  const f=fixture();f.context.initializePushNotifications();f.call('af.push.subscribe',{token:deviceToken});
+  assert.equal(f.call('af.push.test',{title:'test',body:'body'},'admin').data.accepted,1);
+  const attempt=f.context.diagnosePushNotifications().lastAttempt;
+  assert.equal(attempt.project,'fixture-project');assert.equal(attempt.messageId,'projects/fixture-project/messages/message_123');
+  assert.equal(attempt.accepted,true);assert.equal(attempt.validateOnly,false);
 });

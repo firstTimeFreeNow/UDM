@@ -73,6 +73,36 @@ function afPushRequest_(message, validateOnly) {
     contentType: 'application/json', headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
     payload: JSON.stringify({ validate_only: !!validateOnly, message: message }), muteHttpExceptions: true };
 }
+/** Keep only the latest response evidence; never store request tokens or response bodies. */
+function afPushResponse_(response, request) {
+  const project = request.url.split('/projects/')[1].split('/')[0];
+  const status = response.getResponseCode();
+  let data;
+  try { data = JSON.parse(response.getContentText()); } catch (error) { data = {}; }
+  const prefix = 'projects/' + project + '/messages/';
+  const name = data && data.name;
+  const validName = typeof name === 'string' && name.startsWith(prefix) &&
+    /^[A-Za-z0-9%:_.~-]{1,256}$/.test(name.slice(prefix.length));
+  const errorCode = data && data.error && data.error.status;
+  const details = data && data.error && data.error.details;
+  const attempt = { at: new Date().toISOString(), project: project, httpStatus: status,
+    validateOnly: JSON.parse(request.payload).validate_only === true,
+    messageId: validName ? name : null, accepted: status === 200 && validName,
+    errorCode: typeof errorCode === 'string' && /^[A-Z_]{1,80}$/.test(errorCode) ? errorCode : null };
+  PropertiesService.getScriptProperties().setProperty('AF_PUSH_LAST_ATTEMPT', JSON.stringify(attempt));
+  console.log(JSON.stringify({ event: 'af.fcm.response', ...attempt }));
+  return { accepted: attempt.accepted,
+    expired: status === 404 && Array.isArray(details) && details.some(function (detail) { return detail && detail.errorCode === 'UNREGISTERED'; }) };
+}
+/** Run PushNotifications.gs > diagnosePushNotifications after sending a test. No notification is sent. */
+function diagnosePushNotifications() {
+  const properties = PropertiesService.getScriptProperties();
+  const project = properties.getProperty('UDM_FIREBASE_PROJECT_ID');
+  const result = { project: project, expectedProject: 'udm-2319d', projectMatches: project === 'udm-2319d',
+    ready: afPushReady_(), lastAttempt: afPushStored_('AF_PUSH_LAST_ATTEMPT') };
+  console.log(JSON.stringify(result));
+  return result;
+}
 /** Run in the editor as the owner. Validation sends no notification. */
 function initializePushNotifications() {
   return afWithLock_(function () {
@@ -80,7 +110,7 @@ function initializePushNotifications() {
     let response;
     try { response = UrlFetchApp.fetch(request.url, request); }
     catch (error) { throw new Error('FCMに接続できません。Apps Scriptの通知送信権限を承認し、Firebase Cloud Messaging APIの有効化を確認してください。'); }
-    if (response.getResponseCode() !== 200) {
+    if (!afPushResponse_(response, request).accepted) {
       throw new Error('FCMの送信権限を確認できません（HTTP ' + response.getResponseCode() + '）。Firebase Cloud Messaging APIと、実行アカウントのFirebaseプロジェクト権限を確認してください。');
     }
     const properties = PropertiesService.getScriptProperties();
@@ -120,14 +150,10 @@ function afCheckPush_() {
   let failed = false;
   responses.forEach(function (response, index) {
     const device = devices[index];
-    const status = response.getResponseCode();
-    let body;
-    try { body = JSON.parse(response.getContentText()); } catch (error) { body = {}; }
-    const details = body.error && body.error.details || [];
-    const expired = status === 404 && details.some(function (detail) { return detail.errorCode === 'UNREGISTERED'; });
-    if (expired) { properties.deleteProperty(device.key); return; }
+    const outcome = afPushResponse_(response, requests[index]);
+    if (outcome.expired) { properties.deleteProperty(device.key); return; }
     const record = { token: device.token, updatedAt: device.updatedAt, lastEvent: device.lastEvent, attempts: device.attemptEvent === event.id ? device.attempts : 0, attemptEvent: event.id };
-    if (status === 200) { record.lastEvent = event.id; record.attempts = 0; }
+    if (outcome.accepted) { record.lastEvent = event.id; record.attempts = 0; }
     else { record.attempts++; failed = true; }
     properties.setProperty(device.key, JSON.stringify(record));
   });
@@ -171,11 +197,9 @@ function afPushTest_(payload, requestId) {
     });
     const responses = UrlFetchApp.fetchAll(requests);
     responses.forEach(function (response, index) {
-      const status = response.getResponseCode();
-      if (status === 200) { result.accepted++; return; }
-      let details = [];
-      try { const data=JSON.parse(response.getContentText()); details=data.error && data.error.details || []; } catch (error) { /* Only a known expiration removes a destination. */ }
-      if (status === 404 && details.some(function (detail) { return detail.errorCode === 'UNREGISTERED'; })) {
+      const outcome = afPushResponse_(response, requests[index]);
+      if (outcome.accepted) { result.accepted++; return; }
+      if (outcome.expired) {
         properties.deleteProperty(devices[index].key); result.removed++;
       } else result.failed++;
     });
