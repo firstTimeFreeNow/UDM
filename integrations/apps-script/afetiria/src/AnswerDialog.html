@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, "Noto Sans JP", sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #223247;
+      background: #ffffff;
+    }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .hint { font-size: 12px; color: #65758a; margin: 4px 0 12px; }
+    label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+    select {
+      width: 100%; padding: 10px; background: #fff;
+      border: 1px solid #cad5e1; border-radius: 8px; font-size: 14px;
+    }
+    .tabs {
+      display: flex; gap: 4px; overflow-x: auto;
+      margin-top: 16px; border-bottom: 1px solid #dce4ec;
+      padding-bottom: 5px;
+    }
+    .tab {
+      flex: 1 0 auto; min-width: 57px; padding: 10px 6px;
+      border: 1px solid transparent; border-radius: 8px;
+      color: #52657a; background: #f2f5f8;
+      cursor: pointer; font-size: 12px;
+    }
+    .tab.active {
+      background: #255b8d; color: #fff; font-weight: bold;
+    }
+    .top-controls {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; padding: 14px 0 8px;
+    }
+    .day-title { font-weight: bold; font-size: 14px; }
+    .all-no {
+      border: 1px solid #d49797; background: #fff5f5;
+      padding: 8px 11px; border-radius: 8px; color: #933;
+      cursor: pointer; font-size: 12px;
+    }
+    .slots { min-height: 120px; }
+    .slot {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; border-bottom: 1px solid #edf0f4; padding: 12px 0;
+    }
+    .slot-info { flex: 1; min-width: 115px; }
+    .when { font-size: 14px; font-weight: bold; }
+    .meta { margin-top: 4px; font-size: 11px; color: #6b7788; }
+    .actions { display: flex; gap: 6px; }
+    .choice {
+      width: 48px; height: 39px; font-size: 17px;
+      border: 1px solid #d3dce6; border-radius: 8px;
+      background: #fff; cursor: pointer;
+    }
+    .choice.yes.selected {
+      background: #d9f3e2; color: #146e41; border-color: #53a979;
+    }
+    .choice.maybe.selected {
+      background: #fff0c6; color: #815c00; border-color: #d5a033;
+    }
+    .choice.no.selected {
+      background: #fce0e0; color: #a32929; border-color: #d97979;
+    }
+    button:disabled, select:disabled { opacity: .55; cursor: wait; }
+    .footer {
+      position: sticky; bottom: -16px; background: #fff;
+      border-top: 1px solid #dce4ec; margin-top: 16px; padding: 14px 0 5px;
+    }
+    .save {
+      width: 100%; height: 44px; border: 0; border-radius: 9px;
+      background: #255b8d; color: #fff; font-size: 14px;
+      font-weight: bold; cursor: pointer;
+    }
+    .save:disabled { background: #9daab8; }
+    .notice { min-height: 18px; margin-top: 7px; font-size: 12px; }
+    .error { color: #ae2525; }
+    .success { color: #18723c; }
+    .dirty { color: #93611d; }
+    .reload {
+      float: right; background: none; border: 0; padding: 2px;
+      font-size: 12px; color: #255b8d; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button type="button" class="reload" onclick="load()">再読み込み</button>
+  <h1>アフェティリアハード｜参加回答</h1>
+  <p id="week" class="hint">読み込み中…</p>
+
+  <label for="member">回答するメンバー</label>
+  <select id="member" onchange="changeMember()" disabled></select>
+
+  <nav id="tabs" class="tabs" aria-label="曜日を選択"></nav>
+  <div class="top-controls">
+    <div id="dayTitle" class="day-title"></div>
+    <button
+      type="button"
+      id="allNo"
+      class="all-no"
+      onclick="setDayAllNo()"
+    >
+      この曜日はすべて×
+    </button>
+  </div>
+
+  <div id="slots" class="slots">読み込み中…</div>
+
+  <div class="footer">
+    <button type="button" id="save" class="save" onclick="save()" disabled>
+      回答を保存
+    </button>
+    <div id="message" class="notice" aria-live="polite"></div>
+    <p class="hint">
+      回答は「回答を保存」を押すまで送信されません。
+    </p>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日'];
+    const PRELOADED_DATA = <?!= initialPayload ?>;
+
+    let data = null;
+    let activeDate = '';
+    let selectedMember = '';
+    let draft = {};
+    let changes = new Map();
+    let saving = false;
+    let loadStartedAt = 0;
+    let saveStartedAt = 0;
+
+    function message(text, kind = '') {
+      $('message').textContent = text;
+      $('message').className = 'notice ' + kind;
+    }
+
+    function datesInWeek(weekStart) {
+      const [year, month, day] = weekStart.split('-').map(Number);
+      const monday = new Date(year, month - 1, day);
+
+      return WEEKDAYS.map((weekday, index) => {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + index);
+
+        const key = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, '0'),
+          String(date.getDate()).padStart(2, '0')
+        ].join('-');
+
+        return {
+          key,
+          weekday,
+          label: `${date.getMonth() + 1}/${date.getDate()}(${weekday})`
+        };
+      });
+    }
+
+    function answersFor(memberName) {
+      return { ...(data.answers[memberName] || {}) };
+    }
+
+    function initializeMember(memberName) {
+      selectedMember = memberName;
+      draft = answersFor(memberName);
+      changes.clear();
+      message('');
+      render();
+    }
+
+    function load(forceRefresh = true) {
+      if (saving) return;
+
+      if (
+        changes.size > 0 &&
+        !confirm('未保存の変更があります。破棄して再読み込みしますか？')
+      ) {
+        return;
+      }
+
+      loadStartedAt = performance.now();
+      message('読み込み中…');
+      $('save').disabled = true;
+
+      if (!forceRefresh && PRELOADED_DATA) {
+        applyData(PRELOADED_DATA);
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(applyData)
+        .withFailureHandler(error => {
+          message(error.message || String(error), 'error');
+          $('slots').textContent = 'データを取得できません。';
+        })
+        .getAnswerData(forceRefresh);
+    }
+
+    function applyData(result) {
+      data = result;
+      $('week').textContent = `対象週：${result.weekId} から7日間`;
+
+      const select = $('member');
+      const previous = selectedMember;
+      select.replaceChildren();
+
+      for (const member of result.members) {
+        const option = document.createElement('option');
+        option.value = member.name;
+        option.textContent = member.name +
+          (member.required ? '（必須）' : '');
+        select.append(option);
+      }
+
+      select.disabled = result.members.length === 0;
+
+      const memberName = result.members.some(
+        member => member.name === previous
+      )
+        ? previous
+        : result.members[0]?.name || '';
+
+      select.value = memberName;
+
+      const dates = datesInWeek(result.weekId);
+
+      if (!dates.some(item => item.key === activeDate)) {
+        activeDate = dates[0].key;
+      }
+
+      initializeMember(memberName);
+
+      const totalMs = Math.round(
+        performance.now() - loadStartedAt
+      );
+
+      console.info('回答初期表示(ms)', {
+        totalMs,
+        source: result === PRELOADED_DATA ? 'preloaded' : 'server',
+        serverMs: result === PRELOADED_DATA
+          ? 0
+          : (result.metrics?.serverMs ?? null),
+        networkAndRenderMs: result === PRELOADED_DATA
+          ? 0
+          : totalMs - (result.metrics?.serverMs || 0)
+      });
+    }
+
+    function changeMember() {
+      const next = $('member').value;
+
+      if (
+        changes.size > 0 &&
+        !confirm('未保存の変更を破棄してメンバーを切り替えますか？')
+      ) {
+        $('member').value = selectedMember;
+        return;
+      }
+
+      initializeMember(next);
+    }
+
+    function setDraft(slotKey, answer) {
+      if (saving || !data) return;
+
+      if (answer === '') {
+        delete draft[slotKey];
+      } else {
+        draft[slotKey] = answer;
+      }
+
+      const original =
+        data.answers[selectedMember]?.[slotKey] || '';
+
+      if (answer === original) {
+        changes.delete(slotKey);
+      } else {
+        changes.set(slotKey, answer);
+      }
+
+      message(
+        `${changes.size}件の未保存の変更があります`,
+        changes.size ? 'dirty' : ''
+      );
+
+      render();
+    }
+
+    function setDayAllNo() {
+      if (!data || saving) return;
+
+      for (
+        const slot of data.slots.filter(
+          slot => slot.date === activeDate
+        )
+      ) {
+        const answer = '×';
+        draft[slot.key] = answer;
+
+        if (
+          (data.answers[selectedMember]?.[slot.key] || '') === answer
+        ) {
+          changes.delete(slot.key);
+        } else {
+          changes.set(slot.key, answer);
+        }
+      }
+
+      message(
+        `${changes.size}件の未保存の変更があります`,
+        changes.size ? 'dirty' : ''
+      );
+
+      render();
+    }
+
+    function render() {
+      if (!data) return;
+
+      const days = datesInWeek(data.weekId);
+      const tabs = $('tabs');
+      tabs.replaceChildren();
+
+      for (const day of days) {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className =
+          'tab' + (activeDate === day.key ? ' active' : '');
+        tab.textContent = day.label;
+        tab.disabled = saving;
+        tab.setAttribute(
+          'aria-selected',
+          String(activeDate === day.key)
+        );
+
+        tab.onclick = () => {
+          activeDate = day.key;
+          render();
+        };
+
+        tabs.append(tab);
+      }
+
+      const today = days.find(day => day.key === activeDate);
+      $('dayTitle').textContent = today?.label || '';
+
+      const slots = data.slots
+        .filter(slot => slot.date === activeDate)
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      $('allNo').disabled =
+        saving || slots.length === 0 || !selectedMember;
+
+      const root = $('slots');
+      root.replaceChildren();
+
+      if (!selectedMember || slots.length === 0) {
+        root.textContent = slots.length === 0
+          ? 'この曜日の候補日時はありません。'
+          : '回答するメンバーが登録されていません。';
+      }
+
+      for (const slot of slots) {
+        const section = document.createElement('section');
+        section.className = 'slot';
+
+        const info = document.createElement('div');
+        info.className = 'slot-info';
+
+        const when = document.createElement('div');
+        when.className = 'when';
+        when.textContent = slot.time;
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent =
+          `参加可能 ${slot.count}人｜${slot.judgment}`;
+
+        info.append(when, meta);
+        section.append(info);
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const current = draft[slot.key] || '';
+
+        for (
+          const [answer, cssClass] of [
+            ['○', 'yes'],
+            ['△', 'maybe'],
+            ['×', 'no']
+          ]
+        ) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className =
+            'choice ' +
+            cssClass +
+            (current === answer ? ' selected' : '');
+          button.textContent = answer;
+          button.disabled = saving;
+          button.setAttribute(
+            'aria-pressed',
+            String(current === answer)
+          );
+          button.onclick = () => setDraft(
+            slot.key,
+            current === answer ? '' : answer
+          );
+
+          actions.append(button);
+        }
+
+        section.append(actions);
+        root.append(section);
+      }
+
+      $('save').disabled = saving || changes.size === 0;
+      $('save').textContent = saving
+        ? '保存中…'
+        : `回答を保存${changes.size ? `（${changes.size}件）` : ''}`;
+    }
+
+    function save() {
+      if (!data || saving || changes.size === 0) return;
+
+      saving = true;
+      saveStartedAt = performance.now();
+      render();
+      message('保存中…');
+
+      const payload = {
+        weekId: data.weekId,
+        member: selectedMember,
+        changes: Array.from(
+          changes,
+          ([slot, answer]) => ({ slot, answer })
+        )
+      };
+
+      google.script.run
+        .withSuccessHandler(result => {
+          if (!result?.success) {
+            saving = false;
+            message(
+              '保存結果を確認できませんでした',
+              'error'
+            );
+            render();
+            return;
+          }
+
+          const totalMs = Math.round(
+            performance.now() - saveStartedAt
+          );
+
+          console.info('回答保存(ms)', {
+            totalMs,
+            serverMs: result.serverMs ?? null,
+            savedCount: result.savedCount
+          });
+
+          changes.clear();
+          google.script.host.close();
+        })
+        .withFailureHandler(error => {
+          saving = false;
+          message(error.message || String(error), 'error');
+          render();
+        })
+        .setAnswersBatch(payload);
+    }
+
+    window.addEventListener('beforeunload', event => {
+      if (changes.size === 0) return;
+
+      event.preventDefault();
+      event.returnValue = '';
+    });
+
+    load(false);
+  </script>
+</body>
+</html>

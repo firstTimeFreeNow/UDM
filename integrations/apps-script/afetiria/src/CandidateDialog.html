@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; }
+    body { font: 14px Arial, 'Noto Sans JP', sans-serif; color: #233244; padding: 18px; margin: 0; background: #fff; }
+    h1 { font-size: 17px; margin: 0 0 6px; }
+    h2 { font-size: 14px; margin-top: 26px; }
+    p { font-size: 12px; color: #6b7280; margin: 0 0 18px; }
+    label { display: block; font-size: 12px; font-weight: bold; margin: 12px 0 5px; }
+    .fields { display: flex; gap: 10px; }
+    .fields > div { flex: 1; }
+    input { padding: 10px; width: 100%; border: 1px solid #cdd7e2; border-radius: 8px; font-size: 14px; }
+    button { cursor: pointer; border-radius: 8px; border: 1px solid #d1dbe6; background: #fff; padding: 8px 12px; color: #21334b; }
+    button.primary { color: #fff; background: #264e7b; border: 0; padding: 11px 16px; margin-top: 14px; width: 100%; font-weight: 700; }
+    .slot { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eef0f4; padding: 9px 0; }
+    .slot button { font-size: 12px; }
+    .error { color: #b42318; }
+    .ok { color: #137048; }
+    #notice { min-height: 18px; font-size: 12px; margin-top: 10px; }
+    #slots { max-height: 220px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>開催候補の管理</h1>
+  <p id="week">対象週を取得中…</p>
+  <div class="fields">
+    <div><label for="day">候補日</label><input type="date" id="day"></div>
+    <div><label for="clock">開始時刻（30分刻み）</label><input type="time" id="clock" step="1800" value="21:30"></div>
+  </div>
+  <button type="button" class="primary" onclick="add()">候補を追加</button>
+  <div id="notice"></div>
+  <h2>登録済み候補</h2>
+  <div id="slots">読み込み中…</div>
+  <script>
+    let state = null;
+    let busy = false;
+    const el = id => document.getElementById(id);
+    function notice(message, ok = false) {
+      el('notice').textContent = message;
+      el('notice').className = ok ? 'ok' : 'error';
+    }
+    function load() {
+      google.script.run.withSuccessHandler(result => {
+        state = result;
+        el('week').textContent = '対象週：' + result.weekId + ' から7日間';
+        if (!el('day').value) el('day').value = result.weekId;
+        render();
+      }).withFailureHandler(error => notice(error.message)).getCandidateData();
+    }
+    function render() {
+      const target = el('slots');
+      target.replaceChildren();
+      if (!state?.slots?.length) { target.textContent = '候補なし'; return; }
+      state.slots.forEach(slot => {
+        const row = document.createElement('div'); row.className = 'slot';
+        const name = document.createElement('span'); name.textContent = slot.date + '　' + slot.time;
+        row.append(name);
+        const button = document.createElement('button'); button.textContent = '削除'; button.disabled = busy;
+        button.onclick = () => remove(slot.key);
+        row.append(button); target.append(row);
+      });
+    }
+    function add() {
+      if (busy) return;
+      busy = true; notice('');
+      google.script.run.withSuccessHandler(result => {
+        busy = false; state = result; notice('候補を追加しました', true); render();
+      }).withFailureHandler(error => {
+        busy = false; notice(error.message); render();
+      }).addCandidate({date: el('day').value, time: el('clock').value});
+    }
+    function remove(key) {
+      if (busy || !confirm('この候補を削除しますか？')) return;
+      busy = true;
+      google.script.run.withSuccessHandler(result => {
+        busy = false; state = result; notice('削除しました', true); render();
+      }).withFailureHandler(error => {
+        busy = false; notice(error.message); render();
+      }).removeCandidate(key);
+    }
+    load();
+  </script>
+</body>
+</html>

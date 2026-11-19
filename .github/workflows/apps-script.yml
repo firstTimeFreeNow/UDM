@@ -1,0 +1,73 @@
+name: Validate and deploy Apps Script
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'integrations/apps-script/afetiria/**'
+      - 'tools/apps-script/**'
+      - 'tests/apps-script/**'
+      - '.github/workflows/apps-script.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/apps-script/afetiria/**'
+      - 'tools/apps-script/**'
+      - 'tests/apps-script/**'
+      - '.github/workflows/apps-script.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'push: コード反映のみ / deploy: 既存URLの公開版も更新'
+        required: true
+        type: choice
+        default: deploy
+        options: [push, deploy]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apps-script-afetiria
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node tools/apps-script/deploy.mjs validate
+      - run: node --test tests/apps-script/*.test.mjs
+
+  deploy:
+    needs: validate
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request' &&
+      vars.AF_APPS_SCRIPT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Push source and update existing deployment
+        env:
+          CLASPRC_JSON: ${{ secrets.AF_CLASPRC_JSON }}
+          AF_SCRIPT_ID: ${{ vars.AF_SCRIPT_ID }}
+          AF_DEPLOYMENT_ID: ${{ vars.AF_DEPLOYMENT_ID }}
+          AF_DEPLOY_MODE: ${{ inputs.mode || vars.AF_APPS_SCRIPT_MODE || 'deploy' }}
+        run: node tools/apps-script/deploy.mjs "$AF_DEPLOY_MODE"

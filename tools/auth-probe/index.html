@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UDM ログイン確認</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f5f8;color:#1b2b40;font:16px system-ui,sans-serif}
+    main{max-width:640px;margin:48px auto;padding:0 20px}h1{font-size:26px;margin:0 0 12px}h2{font-size:18px;margin-top:0}
+    .hint{color:#526277;font-size:14px;line-height:1.7}section,details{margin:20px 0;background:white;border:1px solid #dbe2ea;border-radius:12px;padding:24px}
+    label{display:block;font-size:14px;font-weight:600;margin:16px 0 6px}input,select{width:100%;padding:11px;border:1px solid #afbdce;border-radius:6px;font:inherit}
+    button{border:1px solid #9aabbe;background:white;border-radius:6px;padding:11px 16px;font:inherit;cursor:pointer}
+    button.primary{background:#245680;color:white;border-color:#245680;width:100%;margin-top:20px}button:disabled{opacity:.5;cursor:default}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}#status{padding:12px 14px;background:#edf3f8;border-radius:6px;line-height:1.6}
+    [hidden]{display:none!important}#message,#probe-status{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7}.error{color:#a22323}
+    summary{cursor:pointer;font-weight:600}.session-actions{margin-top:14px}
+  </style>
+</head>
+<body><main>
+  <h1>UDM ログイン確認</h1>
+  <p class="hint">共通アカウントと管理者のGoogleログインを確認するための画面です。</p>
+  <p id="status" role="status">認証を準備しています…</p>
+  <section id="login-section">
+    <h2>共通アカウントでログイン</h2>
+    <form id="login-form">
+      <label for="email">共通メールアドレス</label><input id="email" type="email" autocomplete="username" required disabled>
+      <label for="password">共通パスワード</label><input id="password" type="password" autocomplete="current-password" required disabled>
+      <button id="email-login" class="primary" type="submit" disabled>ログイン</button>
+    </form>
+    <div class="row"><button id="google-login" type="button" disabled>Googleでログイン</button></div>
+  </section>
+  <section id="session-section" hidden>
+    <h2>ログインを確認しました</h2>
+    <p class="hint">ページを再読み込みして、ログイン状態が戻ることを確認できます。</p>
+    <div class="row"><button id="reload" type="button">再読み込み</button><button id="logout" type="button">ログアウト</button></div>
+  </section>
+  <p id="message" role="status" aria-live="polite"></p>
+  <details id="probe-section" hidden>
+    <summary>シート通信の検証</summary>
+    <p class="hint">別途用意する匿名テスト用の接続先で、保存と再取得を確認します。</p>
+    <label for="endpoint">Apps Scriptのテスト用URL</label><input id="endpoint" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+    <div class="row"><button id="read" type="button">読み取り</button><button id="admin" type="button">管理権限を確認</button></div>
+    <label for="answer">テスト回答</label><select id="answer"><option value="yes">○</option><option value="maybe">△</option><option value="no">×</option><option value="">未回答</option></select>
+    <div class="row"><button id="write" type="button" disabled>テスト回答を保存</button></div>
+    <p id="probe-status" role="status" aria-live="polite">未接続</p>
+  </details>
+  <script type="module" src="/app.mjs"></script>
+</main></body></html>
