@@ -1,0 +1,11 @@
+{
+  "name": "@udm/contracts",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./afetiria": "./src/afetiria.ts",
+    "./shared-links": "./src/shared-links.ts",
+    "./routes": "./src/routes.mjs",
+    "./signature": "./src/signature.mjs"
+  }
+}

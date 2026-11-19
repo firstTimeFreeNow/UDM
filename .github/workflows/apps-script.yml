@@ -4,15 +4,23 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'integrations/apps-script/afetiria/**'
+      - 'apps/apps-script/**'
       - 'tools/apps-script/**'
+      - 'packages/contracts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'tests/apps-script/**'
       - '.github/workflows/apps-script.yml'
   push:
     branches: [main]
     paths:
-      - 'integrations/apps-script/afetiria/**'
+      - 'apps/apps-script/**'
       - 'tools/apps-script/**'
+      - 'packages/contracts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'tests/apps-script/**'
       - '.github/workflows/apps-script.yml'
   workflow_dispatch:

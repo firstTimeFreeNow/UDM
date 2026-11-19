@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Script } from 'node:vm';
 
 const execute = promisify(execFile);
-export const SOURCE = fileURLToPath(new URL('../../integrations/apps-script/afetiria/src/', import.meta.url));
+export const SOURCE = fileURLToPath(new URL('../../apps/apps-script/src/', import.meta.url));
 const CLASP = fileURLToPath(new URL('../../node_modules/@google/clasp/build/src/index.js', import.meta.url));
 const REQUIRED = ['main.gs', 'WebApi.gs', 'SharedLinks.gs', 'PushNotifications.gs', 'AnswerDialog.html', 'CandidateDialog.html', 'appsscript.json'];
 

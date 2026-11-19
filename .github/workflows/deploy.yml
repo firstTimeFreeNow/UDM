@@ -49,6 +49,8 @@ jobs:
         run: pnpm run test:planner
       - name: Test scheduling API and Apps Script deployment
         run: pnpm run test:afetiria
+      - name: Test BFF and answer drafts
+        run: pnpm run test:bff
       - name: Check types
         run: pnpm run typecheck
       - name: Build static site
@@ -59,13 +61,14 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
+          NEXT_PUBLIC_UDM_API_URL: ${{ vars.NEXT_PUBLIC_UDM_API_URL }}
           NEXT_PUBLIC_AF_API_URL: ${{ vars.NEXT_PUBLIC_AF_API_URL }}
         run: pnpm run build
       - name: Upload Pages artifact
         if: (github.event_name == 'release' && github.event.action == 'published') || inputs.release_sha != ''
         uses: actions/upload-pages-artifact@v5
         with:
-          path: out
+          path: apps/web/out
 
   publish:
     if: inputs.release_sha != '' && inputs.release_version != ''

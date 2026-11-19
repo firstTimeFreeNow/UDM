@@ -10,3 +10,8 @@ out/
 **/.clasp.json
 **/.clasprc.json
 **/client_secret*.json
+
+.wrangler/
+.dev.vars*
+
+dist/

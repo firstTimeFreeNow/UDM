@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-const source=await readFile(new URL('../../public/afetiria-extra/push-sw.js',import.meta.url),'utf8');
+const source=await readFile(new URL('../../apps/web/public/afetiria-extra/push-sw.js',import.meta.url),'utf8');
 function fixture() {
   const handlers=new Map(), notifications=[], opened=[];
   const self={addEventListener:(name,handler)=>handlers.set(name,handler),skipWaiting:async()=>{},

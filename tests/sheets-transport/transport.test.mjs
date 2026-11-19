@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { createProbeClient, validateEndpoint } from '../../lib/sheets-transport/client.mjs';
+import { createProbeClient, validateEndpoint } from '../../apps/web/lib/sheets-transport/client.mjs';
 
 const endpoint = 'https://script.google.com/macros/s/TEST_DEPLOYMENT/exec';
 const token = 'synthetic-token';
@@ -90,7 +90,7 @@ test('timeouts abort the request without claiming that the write did not happen'
     { code: 'TIMEOUT', outcomeUnknown: true });
 });
 
-const source = readFileSync(new URL('../../integrations/apps-script/transport-probe/Code.gs', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../tools/sheets-transport/apps-script/Code.gs', import.meta.url), 'utf8');
 function fixture({ authStatus = 200, uid = 'test-participant', disabled = false, busy = false,
   marker = 'UDM_TRANSPORT_PROBE_V1', failFlush = false } = {}) {
   let cells = [[marker, 0, ''], ['demo-slot', 'no', '']];

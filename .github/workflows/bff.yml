@@ -1,0 +1,76 @@
+name: Validate and deploy UDM BFF
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      [
+        "apps/bff/**",
+        "packages/contracts/**",
+        "tests/bff/**",
+        "apps/web/lib/udm-api/**",
+        "apps/web/lib/afetiria/answer-draft.ts",
+        "tools/deploy-bff.mjs",
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        ".github/workflows/bff.yml",
+      ]
+  push:
+    branches: [main]
+    paths:
+      [
+        "apps/bff/**",
+        "packages/contracts/**",
+        "tests/bff/**",
+        "apps/web/lib/udm-api/**",
+        "apps/web/lib/afetiria/answer-draft.ts",
+        "tools/deploy-bff.mjs",
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        ".github/workflows/bff.yml",
+      ]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: udm-bff-deploy
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:bff
+      - run: pnpm run build:bff
+        env:
+          WRANGLER_SEND_METRICS: "false"
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.UDM_BFF_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy BFF with server secrets
+        run: node tools/deploy-bff.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          UDM_BFF_SHARED_SECRET: ${{ secrets.UDM_BFF_SHARED_SECRET }}
+          AF_EXEC_URL: ${{ vars.NEXT_PUBLIC_AF_API_URL }}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {waitForPushWorker,PushSetupError,pushFailureCode,pushSetupMessage} from '../../lib/afetiria/push-registration.ts';
+import {waitForPushWorker,PushSetupError,pushFailureCode,pushSetupMessage} from '../../apps/web/lib/afetiria/push-registration.ts';
 function fixture(state='installing') {
   const worker=Object.assign(new EventTarget(),{state});
   const registration=Object.assign(new EventTarget(),{installing:worker,waiting:null,active:null});

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 /** Uses supplied Playwright chromium; does not require new project dependencies. */
 export async function runBrowserChecks(chromium, launchOptions = {}) {
-  const clientSource = await readFile(new URL('../../lib/sheets-transport/client.mjs', import.meta.url), 'utf8');
+  const clientSource = await readFile(new URL('../../apps/web/lib/sheets-transport/client.mjs', import.meta.url), 'utf8');
   const seen = [];
   const pending = new Map();
   let browser;

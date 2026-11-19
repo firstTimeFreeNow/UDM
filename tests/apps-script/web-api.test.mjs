@@ -2,15 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { randomUUID, createHash } from 'node:crypto';
-import { isSchedule, isHistory } from '../../lib/afetiria/types.ts';
-import { isInternalPath } from '../../lib/shared-links/types.ts';
+import { randomUUID, createHash, createHmac } from 'node:crypto';
+import {signRequest} from '../../packages/contracts/src/signature.mjs';
+import { isSchedule, isHistory } from '../../packages/contracts/src/afetiria.ts';
+import { isInternalPath } from '../../packages/contracts/src/shared-links.ts';
 
 process.env.TZ = 'Asia/Tokyo';
-const code = await readFile(new URL('../../integrations/apps-script/afetiria/src/main.gs', import.meta.url), 'utf8');
-const api = await readFile(new URL('../../integrations/apps-script/afetiria/src/WebApi.gs', import.meta.url), 'utf8');
-const push = await readFile(new URL('../../integrations/apps-script/afetiria/src/PushNotifications.gs', import.meta.url), 'utf8');
-const links = await readFile(new URL('../../integrations/apps-script/afetiria/src/SharedLinks.gs', import.meta.url), 'utf8');
+const code = await readFile(new URL('../../apps/apps-script/src/main.gs', import.meta.url), 'utf8');
+const api = await readFile(new URL('../../apps/apps-script/src/WebApi.gs', import.meta.url), 'utf8');
+const push = await readFile(new URL('../../apps/apps-script/src/PushNotifications.gs', import.meta.url), 'utf8');
+const links = await readFile(new URL('../../apps/apps-script/src/SharedLinks.gs', import.meta.url), 'utf8');
 const id = n => `m_00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
 const names = ['設定・メンバー', '日程調整', '開催日程', '（管理者用）回答管理', '開催履歴', 'UDM共有リンク'];
 function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}) {
@@ -71,7 +72,7 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
     SpreadsheetApp: {getActiveSpreadsheet: () => ({getId: () => 'fixture-sheet', getSheetByName: name => sheets.get(name)}), flush(){}},
     LockService: {getScriptLock: () => ({tryLock() {assert.equal(locked,false, 'nested script lock'); locked=true; return true;}, releaseLock(){locked=false;}})},
     CacheService: {getScriptCache: () => ({get: () => null, put(){}, remove(){}})},
-    Utilities: {getUuid: randomUUID, DigestAlgorithm:{SHA_256:'sha256'}, Charset:{UTF_8:'utf8'}, computeDigest: (_algorithm,value) => [...createHash('sha256').update(value).digest()], base64DecodeWebSafe: value => Buffer.from(value,'base64url'), newBlob: value => ({getDataAsString: () => value.toString('utf8')}), formatDate(date, _zone, pattern) {
+    Utilities: {getUuid: randomUUID, DigestAlgorithm:{SHA_256:'sha256'}, Charset:{UTF_8:'utf8'}, computeHmacSha256Signature:(value,secret)=>[...createHmac('sha256',secret).update(value).digest()], computeDigest: (_algorithm,value) => [...createHash('sha256').update(value).digest()], base64DecodeWebSafe: value => Buffer.from(value,'base64url'), newBlob: value => ({getDataAsString: () => value.toString('utf8')}), formatDate(date, _zone, pattern) {
       const parts = new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date);
       if (pattern === 'yyyy-MM-dd') return parts.slice(0,10);
       if (pattern === 'HH:mm') return parts.slice(11,16);
@@ -434,4 +435,25 @@ test('anonymous opt-in validates new FCM destinations for our project without se
   }
   f.call('af.push.subscribe',{token:deviceToken},'');assert.equal(f.registrationChecks.length,2);
   assert.equal(f.sent.length,0);
+});
+
+
+test('BFF signature matches the Worker, enforces cutover, prevents replay and detects modified payloads', async () => {
+  const f=fixture();const secret='fixture-shared-secret-32-characters-long';
+  f.values.set('UDM_BFF_SHARED_SECRET',secret);f.values.set('UDM_BFF_REQUIRED','true');
+  assert.equal(f.call('af.session',{},'admin').error.code,'AUTH_REQUIRED');
+  const token=f.jwt('admin');
+  async function envelope(payload={},time=Date.now()) {
+    const request={version:1,requestId:'request_12345678',action:'af.session',payload,idToken:token,bff:{issuedAt:time,nonce:randomUUID()}};
+    request.bff.signature=await signRequest(request,secret);return request.bff;
+  }
+  const bff=await envelope();
+  assert.equal(f.call('af.session',{},token,{bff}).data.role,'admin');
+  assert.equal(f.call('af.session',{},token,{bff}).error.code,'AUTH_REQUIRED');
+  assert.equal(f.call('af.session',{different:true},token,{bff:await envelope()}).error.code,'AUTH_REQUIRED');
+  assert.equal(f.call('af.session',{},token,{bff:await envelope({},Date.now()-61000)}).error.code,'AUTH_REQUIRED');
+  f.values.set('UDM_BFF_REQUIRED','false');
+  assert.equal(f.call('af.session',{},token).data.role,'admin');
+  const invalid=await envelope();invalid.signature='0'.repeat(64);
+  assert.equal(f.call('af.session',{},token,{bff:invalid}).error.code,'AUTH_REQUIRED');
 });

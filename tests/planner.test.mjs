@@ -11,14 +11,14 @@ import {
   random,
   geometricQuantile,
   expectedAttempts,
-} from "../lib/planner/engine.ts";
+} from "../apps/web/lib/planner/engine.ts";
 import {
   defaultInput,
   sampleInput,
   EQUIPMENT,
   CONTENTS,
-} from "../lib/planner/data.ts";
-import { parseSaved } from "../lib/planner/storage.ts";
+} from "../apps/web/lib/planner/data.ts";
+import { parseSaved } from "../apps/web/lib/planner/storage.ts";
 const target = CONTENTS.find((x) => x.name === "色を失った大地");
 const zero = () => ({ S: 0, H: 0, I: 0, M: 0 });
 function sample() {
@@ -279,7 +279,7 @@ test("専用武器の装備可能キャラを保持し更新候補にも反映�
 
 test("選択したエンチャントと任意入力を基礎値へ加算し合成枠の削減も反映する", async () => {
   const { withEnchants, withMix, enchantSlots } =
-    await import("../lib/planner/enchantment.ts");
+    await import("../apps/web/lib/planner/enchantment.ts");
   const g = sample().gear[0];
   g.actual.S = 130;
   g.enchant.S = 30;
@@ -376,7 +376,7 @@ test("称号の補正を合計と到達上限へ一度だけ反映し強化対�
 
 test("アバター5部位の実数値とセット補正を一度だけ加算し対象外・未装備を区別する", async () => {
   const { avatarValues, avatarSetActive, defaultAvatars } =
-    await import("../lib/planner/avatar.ts");
+    await import("../apps/web/lib/planner/avatar.ts");
   const i = sample();
   assert.deepEqual(avatarValues(i.avatars), zero());
   const before = calculate(i, target, ["S"]);
@@ -422,7 +422,7 @@ test("エンチャントは装備上限で切り捨て任意加算を上限の�
     withCap,
     withEntryCount,
     enchantSlots,
-  } = await import("../lib/planner/enchantment.ts");
+  } = await import("../apps/web/lib/planner/enchantment.ts");
   const g = sample().gear[0];
   g.actual.S = 390;
   g.enchant.S = 0;
@@ -483,7 +483,7 @@ test("旧保存データの選択済みエンチャントも復元時に上限�
 
 test("現在装備の強化だけで達成できても自動差し替え案を比較し入力は維持する", async () => {
   const { calculateReplacements } =
-    await import("../lib/planner/replacements.ts");
+    await import("../apps/web/lib/planner/replacements.ts");
   const i = sample(),
     saved = JSON.stringify(i);
   const result = calculateReplacements(i, target, ["S"], EQUIPMENT);
@@ -517,7 +517,7 @@ test("現在装備の強化だけで達成できても自動差し替え案を�
 });
 test("1部位では届かなくても複数部位の自動差し替えと上限までの強化を提案する", async () => {
   const { calculateReplacements } =
-    await import("../lib/planner/replacements.ts");
+    await import("../apps/web/lib/planner/replacements.ts");
   const i = sample();
   i.gear[1].upgradable = true;
   for (const g of i.gear.slice(0, 2)) {
@@ -565,9 +565,9 @@ test("1部位では届かなくても複数部位の自動差し替えと上限�
 
 test("自動差し替えは各装備から一段上の系列に限定しイベント装備や段飛ばしを除外する", async () => {
   const { replacementInputs, calculateReplacements } =
-    await import("../lib/planner/replacements.ts");
+    await import("../apps/web/lib/planner/replacements.ts");
   const { equipmentTier, isNextEquipmentTier } =
-    await import("../lib/planner/equipment-tier.ts");
+    await import("../apps/web/lib/planner/equipment-tier.ts");
   assert.equal(equipmentTier("改・セイクリッドレイピア"), 3);
   assert.equal(
     isNextEquipmentTier("アビスレイピア", "エクリプスレイピア"),
@@ -606,10 +606,10 @@ test("自動差し替えは各装備から一段上の系列に限定しイベ�
 
 test("セイクリッド系はルビコナハード以降だけで提案し製作前の入場案には使わない", async () => {
   const { replacementInputs, calculateReplacements } =
-    await import("../lib/planner/replacements.ts");
+    await import("../apps/web/lib/planner/replacements.ts");
   const { isAvailableForContent } =
-    await import("../lib/planner/equipment-tier.ts");
-  const { selectEquipment } = await import("../lib/planner/data.ts");
+    await import("../apps/web/lib/planner/equipment-tier.ts");
+  const { selectEquipment } = await import("../apps/web/lib/planner/data.ts");
   const i = sample();
   i.gear[0] = selectEquipment(
     "weapon",
@@ -654,10 +654,10 @@ test("セイクリッド系はルビコナハード以降だけで提案し製�
 });
 
 test("スタリオンサイン-イエローは既知のMR上限700で計算し他能力の不明値で止めない", async () => {
-  const { selectEquipment } = await import("../lib/planner/data.ts");
+  const { selectEquipment } = await import("../apps/web/lib/planner/data.ts");
   const { withBase, withEnchants, withExtra, withCap } =
-    await import("../lib/planner/enchantment.ts");
-  const { isCapKnown } = await import("../lib/planner/caps.ts");
+    await import("../apps/web/lib/planner/enchantment.ts");
+  const { isCapKnown } = await import("../apps/web/lib/planner/caps.ts");
   const master = EQUIPMENT.find((e) => e.name === "スタリオンサイン-イエロー");
   const i = sample();
   i.gear[0].included = false;
@@ -695,9 +695,9 @@ test("スタリオンサイン-イエローは既知のMR上限700で計算し�
 
 test("アビリティ名と追加効果から補正を自動集計し上限外へ加算、解除・変更も反映する", async () => {
   const { ABILITIES, abilityValues } =
-    await import("../lib/planner/abilities.ts");
+    await import("../apps/web/lib/planner/abilities.ts");
   const { withEnchants, withAbility, withExtra } =
-    await import("../lib/planner/enchantment.ts");
+    await import("../apps/web/lib/planner/enchantment.ts");
   const night = ABILITIES.find(
     (a) => a.slot === "weapon" && a.name === "夜星の耐魔力",
   );
@@ -734,7 +734,7 @@ test("アビリティ名と追加効果から補正を自動集計し上限外�
 });
 test("エフェクトの強化目標は初期255、指定値内だけで探索し装備上限や現在値は変えない", async () => {
   const { configuredPlanningCap } =
-    await import("../lib/planner/planning-limit.ts");
+    await import("../apps/web/lib/planner/planning-limit.ts");
   const i = sample();
   i.gear[0].slot = "effect";
   i.gear[0].caps.S = 1000;
@@ -796,7 +796,7 @@ test("装備別費用はインクリと呪文書に分かれ合計が全体費�
   );
 });
 test("装備別費用でも共有の所持呪文書を二重使用しない", async () => {
-  const { summarize } = await import("../lib/planner/engine.ts");
+  const { summarize } = await import("../apps/web/lib/planner/engine.ts");
   const i = defaultInput();
   i.seed.initial = 1e12;
   i.scrolls.find((s) => s.id === "S-14").stock = 1;
@@ -829,7 +829,7 @@ test("装備別費用でも共有の所持呪文書を二重使用しない", as
 
 test("能力値の追加効果は1枠だけを受け付ける", async () => {
   const { ABILITIES, validAbility, abilityValues } =
-    await import("../lib/planner/abilities.ts");
+    await import("../apps/web/lib/planner/abilities.ts");
   const d = ABILITIES.find(
     (a) => a.slot === "hand" && a.name === "夜星の的中剣",
   );
@@ -852,13 +852,13 @@ test("能力値の追加効果は1枠だけを受け付ける", async () => {
 
 test("強化目標上限はエフェクト以外には適用しない", async () => {
   const { configuredPlanningCap, planningLimit } =
-    await import("../lib/planner/planning-limit.ts");
+    await import("../apps/web/lib/planner/planning-limit.ts");
   const g = { ...sample().gear[0], planningCap: 255 };
   assert.equal(configuredPlanningCap(g), null);
   assert.equal(planningLimit(g, "S"), g.caps.S);
 });
 test("保存済みの能力値以外の追加効果枠を取り除いて復元する", async () => {
-  const { ABILITIES } = await import("../lib/planner/abilities.ts");
+  const { ABILITIES } = await import("../apps/web/lib/planner/abilities.ts");
   const i = sample();
   i.gear[0].ability = {
     id: ABILITIES.find((a) => a.name === "夜星の尖った刃").id,
@@ -883,7 +883,7 @@ test("収入は旧獲得上限が0でもそのまま使い520週を超える目�
   assert.ok(r.week90 > 520);
 });
 test("資金到達週は遠い臨時収入と両通貨を反映し、到達不能だけnullを返す", async () => {
-  const { fundingWeek } = await import("../lib/planner/engine.ts");
+  const { fundingWeek } = await import("../apps/web/lib/planner/engine.ts");
   const i = defaultInput();
   i.windfalls = [{ id: "late", week: 10000000, seed: 100, elso: 5 }];
   assert.equal(fundingWeek(i, 100, 5), 10000000);
@@ -918,7 +918,7 @@ test("試行の待機も520週で打ち切らず、必要な入金週まで進�
   assert.equal(r.rows.at(-1).completed, 1);
 });
 test("部位ごとの完了週は所持呪文書を反映した手順順の累積費用で求める", async () => {
-  const { summarize } = await import("../lib/planner/engine.ts");
+  const { summarize } = await import("../apps/web/lib/planner/engine.ts");
   const i = defaultInput();
   i.seed.income = 10e8;
   i.seed.budget = 10e8;
@@ -956,7 +956,7 @@ test("部位ごとの完了週は所持呪文書を反映した手順順の累�
 });
 
 test("アビリティ名も固定補正・追加補正が主能力に合う候補だけを表示する", async () => {
-  const { availableAbilities } = await import("../lib/planner/abilities.ts");
+  const { availableAbilities } = await import("../apps/web/lib/planner/abilities.ts");
   const stab = availableAbilities("weapon", 310, ["S"]);
   assert.equal(stab.length, 4);
   assert.ok(stab.every((a) => a.name.includes("尖った刃")));
@@ -994,7 +994,7 @@ test("アビリティ名も固定補正・追加補正が主能力に合う候�
 
 test("アクィルス・インファーナルをキャラ制限と未確認値を保持して追加する", async () => {
   const { equipmentTier, isNextEquipmentTier } =
-    await import("../lib/planner/equipment-tier.ts");
+    await import("../apps/web/lib/planner/equipment-tier.ts");
   for (const name of ["アクィルスレイピア", "インファーナルレイピア"]) {
     const e = EQUIPMENT.find((e) => e.name === name);
     assert.equal(e.level, 300);
@@ -1020,7 +1020,7 @@ test("アクィルス・インファーナルをキャラ制限と未確認値�
 });
 test("カフス2枠とルナリア1枠のアビリティを本体と別に集計し入場用カフス補正へ混ぜない", async () => {
   const { SPECIAL_ABILITIES, specialValues, specialAbilityValues } =
-    await import("../lib/planner/special-abilities.ts");
+    await import("../apps/web/lib/planner/special-abilities.ts");
   const i = sample(),
     cuffs = i.special.find((s) => s.id === "cuffs"),
     pendant = i.special.find((s) => s.id === "pendant");
@@ -1050,7 +1050,7 @@ test("カフス2枠とルナリア1枠のアビリティを本体と別に集計
 });
 test("ルナリア左の防御系アビリティは主能力補正を加算しない", async () => {
   const { SPECIAL_ABILITIES, specialAbilityValues, validSpecialAbilities } =
-    await import("../lib/planner/special-abilities.ts");
+    await import("../apps/web/lib/planner/special-abilities.ts");
   const i = sample(),
     b = i.special.find((s) => s.id === "bracelet");
   b.kind = "ルナリア";
@@ -1067,7 +1067,7 @@ test("ルナリア左の防御系アビリティは主能力補正を加算し�
 });
 test("48週を年月に換算し日本時間の当日から完成日を求める", async () => {
   const { japanToday, calendarDate, calendarDuration } =
-    await import("../lib/planner/calendar.ts");
+    await import("../apps/web/lib/planner/calendar.ts");
   assert.equal(japanToday(new Date("2026-11-09T16:00:00Z")), "2026-11-10");
   assert.equal(calendarDuration("2026-11-10", 48), "約11か月");
   assert.equal(calendarDate("2026-11-10", 48), "2027年10月12日");
@@ -1170,7 +1170,7 @@ test("使い捨ては装備本来の上限へ到達し上限外の補正を別�
   assert.equal(calculate(i, { ...target, single: 275 }, ["S"]).plans.length, 0);
 });
 test("自動差し替え先に元装備の乗り換え予定を引き継がない", async () => {
-  const { replacementInputs } = await import("../lib/planner/replacements.ts");
+  const { replacementInputs } = await import("../apps/web/lib/planner/replacements.ts");
   const i = sample();
   i.gear[0].replacementPlanned = true;
   const replacements = replacementInputs(i, target, ["S"], EQUIPMENT);
@@ -1242,7 +1242,7 @@ test("各ビアヌ成功の期待試行回数・費用と前手順からの資�
 });
 
 test("部位の実施順を変えても部位内のインクリ・エンチャントの順は保つ", async () => {
-  const { arrangeOperations } = await import("../lib/planner/schedule.ts");
+  const { arrangeOperations } = await import("../apps/web/lib/planner/schedule.ts");
   const i = sample(),
     ops = calculate(i, target, ["S"]).plans[0].operations;
   const both = [...ops, ...ops.map((op) => ({ ...op, slot: "手" }))];
@@ -1270,7 +1270,7 @@ test("部位の実施順を変えても部位内のインクリ・エンチャ�
 });
 test("開始日を変更すると完成日・90%95%目安と個々の予定週も指定日以降になる", async () => {
   const { completionDate, japanToday } =
-    await import("../lib/planner/calendar.ts");
+    await import("../apps/web/lib/planner/calendar.ts");
   const i = sample();
   i.seed.initial = 1e14;
   i.schedule = {
@@ -1317,8 +1317,8 @@ test("指定日までの収入を加えELSO優先で支払い、開始日変更�
   assert.equal(later.elso, 1359);
 });
 test("実施順変更後も所持呪文書を一度だけ使い費用内訳を再計算する", async () => {
-  const { arrangeOperations } = await import("../lib/planner/schedule.ts");
-  const { summarize } = await import("../lib/planner/engine.ts");
+  const { arrangeOperations } = await import("../apps/web/lib/planner/schedule.ts");
+  const { summarize } = await import("../apps/web/lib/planner/engine.ts");
   const i = defaultInput();
   i.seed.initial = 30e8;
   i.scrolls.find((s) => s.id === "S-14").stock = 1;

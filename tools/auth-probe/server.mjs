@@ -22,7 +22,7 @@ export async function createAuthProbeServer(config, { port = 0 } = {}) {
   const routes = new Map([
     ['/', [await readFile(new URL('./index.html', import.meta.url)), 'text/html;charset=UTF-8']],
     ['/app.mjs', [await readFile(new URL('./app.mjs', import.meta.url)), 'text/javascript;charset=UTF-8']],
-    ['/client.mjs', [await readFile(new URL('../../lib/sheets-transport/client.mjs', import.meta.url)), 'text/javascript;charset=UTF-8']],
+    ['/client.mjs', [await readFile(new URL('../../apps/web/lib/sheets-transport/client.mjs', import.meta.url)), 'text/javascript;charset=UTF-8']],
     ['/config.json', [JSON.stringify(allowed), 'application/json;charset=UTF-8']],
   ]);
   const server = createServer((req, res) => {
@@ -52,7 +52,7 @@ async function main() {
     for await (const chunk of process.stdin) input += chunk;
     environment = JSON.parse(input);
   } else {
-    const text = await readFile(new URL('../../.env.local', import.meta.url), 'utf8');
+    const text = await readFile(new URL('../../apps/web/.env.local', import.meta.url), 'utf8');
     environment = Object.fromEntries(text.split(/\r?\n/).filter(line => line && !line.startsWith('#') && line.includes('='))
       .map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
   }
