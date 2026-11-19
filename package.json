@@ -13,16 +13,17 @@
     "test:planner": "node --test tests/*.test.mjs",
     "test:afetiria": "node --test tests/apps-script/*.test.mjs tests/sheets-transport/*.test.mjs",
     "check:apps-script": "node tools/apps-script/deploy.mjs validate",
-    "test:bff": "node --test tests/bff/*.test.mjs",
+    "test:bff": "pnpm --filter @udm/bff test",
     "dev:bff": "pnpm --filter @udm/bff dev",
     "build:bff": "pnpm --filter @udm/bff build",
-    "test": "pnpm run test:release && pnpm run test:planner && pnpm run test:afetiria && pnpm run test:bff",
-    "deploy:bff": "node tools/deploy-bff.mjs",
-    "deploy:apps-script": "pnpm --filter @udm/apps-script deploy"
+    "test": "pnpm run test:release && pnpm run test:planner && pnpm run test:afetiria && pnpm run test:bff && pnpm run test:api-client && pnpm run test:cloud-run",
+    "deploy:bff": "bash tools/cloud-run/deploy.sh",
+    "deploy:apps-script": "pnpm --filter @udm/apps-script deploy",
+    "test:api-client": "node --test tests/bff/*.test.mjs",
+    "test:cloud-run": "python3 -m unittest discover -s tests/cloud-run"
   },
   "devDependencies": {
     "@google/clasp": "3.4.1",
-    "typescript": "5.9.3",
-    "jose": "^6.2.17"
+    "typescript": "5.9.3"
   }
 }

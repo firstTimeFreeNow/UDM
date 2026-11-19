@@ -41,6 +41,11 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: apps/bff/go.mod
+          cache: false
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Test release automation
@@ -49,8 +54,10 @@ jobs:
         run: pnpm run test:planner
       - name: Test scheduling API and Apps Script deployment
         run: pnpm run test:afetiria
-      - name: Test BFF and answer drafts
+      - name: Test Go BFF
         run: pnpm run test:bff
+      - name: Test browser API client and answer drafts
+        run: pnpm run test:api-client
       - name: Check types
         run: pnpm run typecheck
       - name: Build static site

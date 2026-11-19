@@ -41,10 +41,11 @@ export function bffRoute(action, payload = {}) {
   if (!paths[action]) throw Error("Unknown API action");
   return paths[action];
 }
-export function bffEndpoint(value) {
+export function bffEndpoint(value, allowLoopback = false) {
   const url = new URL(value);
+  const local = allowLoopback && url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
   if (
-    url.protocol !== "https:" ||
+    (url.protocol !== "https:" && !local) ||
     url.username ||
     url.password ||
     url.search ||

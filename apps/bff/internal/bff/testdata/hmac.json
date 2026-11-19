@@ -1,0 +1,21 @@
+{
+  "secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "request": {
+    "version": 1,
+    "requestId": "00000000-0000-4000-8000-000000000000",
+    "action": "af.members.add",
+    "payload": {
+      "weekId": "2026-11-16",
+      "name": "名前 <>& \" 😀   ",
+      "literal": "\\u2028\\u2029",
+      "required": true
+    },
+    "idToken": "fixture-token",
+    "bff": {
+      "issuedAt": 1795114800000,
+      "nonce": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  "canonical": "{\"action\":\"af.members.add\",\"idToken\":\"fixture-token\",\"issuedAt\":1795114800000,\"nonce\":\"00000000-0000-4000-8000-000000000001\",\"payload\":{\"literal\":\"\\\\u2028\\\\u2029\",\"name\":\"名前 <>& \\\" 😀   \",\"required\":true,\"weekId\":\"2026-11-16\"},\"requestId\":\"00000000-0000-4000-8000-000000000000\",\"version\":1}",
+  "signature": "a0ce649ad91d9d5a68cab9f3f793fc8145923ecbdfb6bf938a2711d740ea4d06"
+}

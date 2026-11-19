@@ -81,7 +81,7 @@ export async function callApiResult<T>(
   const endpoint = process.env.NEXT_PUBLIC_AF_API_URL;
   if (!endpoint && !bff) throw new ApiError("CONFIG_REQUIRED");
   const [method, path] = bff ? bffRoute(action, payload) : ["POST", ""];
-  const url = bff ? bffEndpoint(bff) + path : validateEndpoint(endpoint!);
+  const url = bff ? bffEndpoint(bff, process.env.NODE_ENV === "development") + path : validateEndpoint(endpoint!);
   const requestId = crypto.randomUUID();
   const idToken = await getIdToken();
   const writing = ![

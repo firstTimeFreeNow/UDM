@@ -1,35 +1,19 @@
-name: Validate and deploy UDM BFF
+name: Validate and deploy Go BFF
 on:
   pull_request:
     branches: [main]
     paths:
-      [
-        "apps/bff/**",
-        "packages/contracts/**",
-        "tests/bff/**",
-        "apps/web/lib/udm-api/**",
-        "apps/web/lib/afetiria/answer-draft.ts",
-        "tools/deploy-bff.mjs",
-        "package.json",
-        "pnpm-lock.yaml",
-        "pnpm-workspace.yaml",
-        ".github/workflows/bff.yml",
-      ]
+      - 'apps/bff/**'
+      - 'tools/cloud-run/**'
+      - 'tests/cloud-run/**'
+      - '.github/workflows/bff.yml'
   push:
     branches: [main]
     paths:
-      [
-        "apps/bff/**",
-        "packages/contracts/**",
-        "tests/bff/**",
-        "apps/web/lib/udm-api/**",
-        "apps/web/lib/afetiria/answer-draft.ts",
-        "tools/deploy-bff.mjs",
-        "package.json",
-        "pnpm-lock.yaml",
-        "pnpm-workspace.yaml",
-        ".github/workflows/bff.yml",
-      ]
+      - 'apps/bff/**'
+      - 'tools/cloud-run/**'
+      - 'tests/cloud-run/**'
+      - '.github/workflows/bff.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -43,34 +27,48 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-go@v6
         with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run test:bff
-      - run: pnpm run build:bff
-        env:
-          WRANGLER_SEND_METRICS: "false"
+          go-version-file: apps/bff/go.mod
+          cache: false
+      - name: Test concurrent requests
+        working-directory: apps/bff
+        run: go test -race ./...
+      - name: Vet and build
+        working-directory: apps/bff
+        run: |
+          go vet ./...
+          CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/bff ./cmd/bff
+      - name: Validate shell scripts
+        run: bash -n tools/cloud-run/bootstrap.sh tools/cloud-run/deploy.sh
+      - name: Test deployment scripts without cloud access
+        run: python3 -m unittest discover -s tests/cloud-run
+      - name: Build runtime container
+        run: docker build --tag udm-bff:check apps/bff
   deploy:
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.UDM_BFF_ENABLED == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: google-github-actions/auth@v3
         with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Deploy BFF with server secrets
-        run: node tools/deploy-bff.mjs
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Build image and deploy Go service
+        run: bash tools/cloud-run/deploy.sh
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          GOOGLE_CLOUD_PROJECT: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          UDM_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          UDM_BFF_RUNTIME_SERVICE_ACCOUNT: ${{ vars.UDM_BFF_RUNTIME_SERVICE_ACCOUNT }}
+          UDM_BFF_REGION: ${{ vars.UDM_BFF_REGION || 'us-central1' }}
+          UDM_ALLOWED_ORIGINS: ${{ vars.UDM_ALLOWED_ORIGINS || 'https://firsttimefreenow.github.io' }}
           UDM_BFF_SHARED_SECRET: ${{ secrets.UDM_BFF_SHARED_SECRET }}
           AF_EXEC_URL: ${{ vars.NEXT_PUBLIC_AF_API_URL }}

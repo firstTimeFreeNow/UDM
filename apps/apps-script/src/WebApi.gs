@@ -239,7 +239,7 @@ function afError_(code) { const error = new Error(code); error.code = code; retu
 function afOutput_(value) { return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON); }
 
 
-/** Canonical JSON matches lib/udm-api/signature.mjs. */
+/** Canonical JSON matches packages/contracts/src/signature.mjs and the Go BFF. */
 function afBffCanonical_(value) {
   if (Array.isArray(value)) return '[' + value.map(afBffCanonical_).join(',') + ']';
   if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(function (key) { return JSON.stringify(key) + ':' + afBffCanonical_(value[key]); }).join(',') + '}';

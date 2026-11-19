@@ -7,12 +7,12 @@ const source=original.replace('"@udm/contracts/routes"',JSON.stringify(new URL('
 const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
 const {callApi,callApiResult,remainingTtl}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
 async function fixture(run){const oldFetch=globalThis.fetch,oldBff=process.env.NEXT_PUBLIC_UDM_API_URL,oldApi=process.env.NEXT_PUBLIC_AF_API_URL;
- process.env.NEXT_PUBLIC_UDM_API_URL='https://udm-bff.fixture.workers.dev';process.env.NEXT_PUBLIC_AF_API_URL='https://script.google.com/macros/s/legacy_12345678901234567890/exec';
+ process.env.NEXT_PUBLIC_UDM_API_URL='https://bff.example.com';process.env.NEXT_PUBLIC_AF_API_URL='https://script.google.com/macros/s/legacy_12345678901234567890/exec';
  try{await run();}finally{globalThis.fetch=oldFetch;if(oldBff===undefined)delete process.env.NEXT_PUBLIC_UDM_API_URL;else process.env.NEXT_PUBLIC_UDM_API_URL=oldBff;if(oldApi===undefined)delete process.env.NEXT_PUBLIC_AF_API_URL;else process.env.NEXT_PUBLIC_AF_API_URL=oldApi;}
 }
 const valid=value=>!!value&&value.saved===true;
 test('browser uses BFF REST route, bearer header and request ID, with no ID token in URL or JSON',()=>fixture(async()=>{
- globalThis.fetch=async(url,options)=>{assert.equal(url,'https://udm-bff.fixture.workers.dev/v1/afetiria-extra/answers');assert.equal(options.headers.Authorization,'Bearer private-token');assert.equal(options.method,'POST');assert.equal(options.body.includes('private-token'),false);const id=options.headers['X-Request-Id'];return Response.json({version:1,requestId:id,ok:true,data:{saved:true}});};
+ globalThis.fetch=async(url,options)=>{assert.equal(url,'https://bff.example.com/v1/afetiria-extra/answers');assert.equal(options.headers.Authorization,'Bearer private-token');assert.equal(options.method,'POST');assert.equal(options.body.includes('private-token'),false);const id=options.headers['X-Request-Id'];return Response.json({version:1,requestId:id,ok:true,data:{saved:true}});};
  assert.equal((await callApi('af.answers.save',{changes:[]},async()=>'private-token',valid)).saved,true);
 }));
 test('GETs have no body and retain a bounded remaining TTL; status failures are parsed rather than silently acknowledged',()=>fixture(async()=>{

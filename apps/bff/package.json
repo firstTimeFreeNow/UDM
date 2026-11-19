@@ -1,16 +1,10 @@
 {
   "name": "@udm/bff",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "build": "wrangler deploy --dry-run --outdir dist"
-  },
-  "dependencies": {
-    "@udm/contracts": "workspace:*",
-    "jose": "^6.2.17"
-  },
-  "devDependencies": {
-    "wrangler": "^4.164.0"
+    "dev": "go run ./cmd/bff",
+    "build": "go build -trimpath -ldflags=\"-s -w\" -o dist/bff ./cmd/bff",
+    "test": "go test -race ./...",
+    "vet": "go vet ./..."
   }
 }

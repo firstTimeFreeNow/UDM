@@ -15,3 +15,8 @@ out/
 .dev.vars*
 
 dist/
+
+# Google GitHub Actions generates temporary federation credentials.
+gha-creds-*.json
+
+__pycache__/
