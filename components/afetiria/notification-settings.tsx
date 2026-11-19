@@ -4,10 +4,8 @@ import Image from "next/image";
 import { pushSetupMessage } from "@/lib/afetiria/push-registration";
 import { ApiError, callApi } from "@/lib/udm-api/client";
 import { deleteDevicePushToken, getDevicePushToken, isPushStatus, PUSH_TOKEN_KEY, type PushStatus } from "@/lib/afetiria/push";
-import { useSession } from "./service-provider";
 import styles from "./service.module.css";
 export function NotificationSettings() {
-  const {user} = useSession();
   const [status, setStatus] = useState<PushStatus | null>(null);
   const [supported, setSupported] = useState(false);
   const [denied, setDenied] = useState(false);
@@ -21,12 +19,12 @@ export function NotificationSettings() {
     setSupported(capable); setDenied("Notification" in window && Notification.permission === "denied");
     let token = "";
     try {token = localStorage.getItem(PUSH_TOKEN_KEY) || "";} catch { /* Optional local cache. */ }
-    callApi("af.push.status", token ? {token} : {}, () => user.getIdToken(), isPushStatus).then(async result => {
+    callApi("af.push.status", token ? {token} : {}, () => Promise.resolve(""), isPushStatus).then(async result => {
       if (active) setStatus(result);
       // Renew only an already opted-in browser; never prompt during page load.
       if (active && capable && configured && result.ready && token && Notification.permission === "granted") {
         const fresh = await getDevicePushToken();
-        const renewed = await callApi("af.push.subscribe", {token:fresh, previousToken:token}, () => user.getIdToken(), isPushStatus);
+        const renewed = await callApi("af.push.subscribe", {token:fresh, previousToken:token}, () => Promise.resolve(""), isPushStatus);
         if (active) {localStorage.setItem(PUSH_TOKEN_KEY,fresh); setStatus(renewed);}
       }
     }).catch(error => {
@@ -36,7 +34,7 @@ export function NotificationSettings() {
     })
       .finally(() => {if (active) setBusy(false);});
     return () => {active=false;};
-  }, [user, configured]);
+  }, [configured]);
   async function enable() {
     if (busy || !supported) return;
     // Keep the browser permission request directly inside the user gesture (Safari).
@@ -47,7 +45,7 @@ export function NotificationSettings() {
       const token = await getDevicePushToken();
       let previousToken = "";
       try {previousToken=localStorage.getItem(PUSH_TOKEN_KEY)||""; localStorage.setItem(PUSH_TOKEN_KEY,token);} catch { /* No cached device identifier. */ }
-      const result = await callApi("af.push.subscribe", {token, previousToken}, () => user.getIdToken(), isPushStatus);
+      const result = await callApi("af.push.subscribe", {token, previousToken}, () => Promise.resolve(""), isPushStatus);
       setStatus(result); setNotice("このブラウザーで開催通知を有効にしました。");
     } catch (error) {setError(error instanceof ApiError ? error.message : pushSetupMessage(error));}
     finally {setBusy(false);}
@@ -57,7 +55,7 @@ export function NotificationSettings() {
     setBusy(true); setError(""); setNotice("");
     try {
       const token=localStorage.getItem(PUSH_TOKEN_KEY);
-      if (token) setStatus(await callApi("af.push.unsubscribe", {token}, () => user.getIdToken(), isPushStatus));
+      if (token) setStatus(await callApi("af.push.unsubscribe", {token}, () => Promise.resolve(""), isPushStatus));
       else setStatus(previous => previous ? {...previous,enabled:false} : previous);
       localStorage.removeItem(PUSH_TOKEN_KEY);
       try {await deleteDevicePushToken();} catch { /* Server destination was already removed. */ }

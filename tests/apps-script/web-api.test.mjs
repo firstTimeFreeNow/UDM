@@ -63,7 +63,7 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
     ['UDM_ALLOWED_UIDS_JSON', JSON.stringify({participant: 'participant', admin: 'admin'})]]);
   const properties = { getProperty: key => values.get(key) ?? null, setProperty: (key, value) => values.set(key,value), deleteProperty: key => values.delete(key), getProperties: () => Object.fromEntries(values) };
   let locked = false;
-  const sent=[]; const sendResults=[];
+  const sent=[]; const sendResults=[]; const registrationChecks=[]; const registrationResults=[];
   const fcmResponse = code => ({getResponseCode: () => code, getContentText: () => JSON.stringify(code===200 ? {name:'projects/fixture-project/messages/message_123'} : code===404 ? {error:{details:[{errorCode:'UNREGISTERED'}]}} : {})});
   const context = vm.createContext({ Date, Set, Map, Number, JSON, Object, console: {log(){}, warn(){}},
     ScriptApp: {getOAuthToken: () => 'private-owner-access-token'},
@@ -77,7 +77,7 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
       if (pattern === 'HH:mm') return parts.slice(11,16);
       return parts.slice(0,16);
     }},
-    UrlFetchApp: {fetchAll(requests) {sent.push(...requests.map(request => JSON.parse(request.payload)));return requests.map(() => fcmResponse(sendResults.shift() || 200));}, fetch(_url, options) {if (_url.startsWith('https://fcm.googleapis.com/')) {sent.push(JSON.parse(options.payload));return fcmResponse(sendResults.shift() || 200);} const token=JSON.parse(options.payload).idToken;
+    UrlFetchApp: {fetchAll(requests) {sent.push(...requests.map(request => JSON.parse(request.payload)));return requests.map(() => fcmResponse(sendResults.shift() || 200));}, fetch(_url, options) {if (_url.startsWith('https://fcm.googleapis.com/')) {const message=JSON.parse(options.payload);if (message.validate_only && message.message.data?.type==='registration-check') {registrationChecks.push({url:_url,...message});return fcmResponse(registrationResults.shift() || 200);} sent.push(message);return fcmResponse(sendResults.shift() || 200);} const token=JSON.parse(options.payload).idToken;
       const uid=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString()).sub; return {
       getResponseCode: () => ['participant','admin','outsider'].includes(uid) ? 200 : 400,
       getContentText: () => JSON.stringify({users:[{localId:uid}]}),
@@ -89,7 +89,7 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
   const jwt = (uid, claims = {}) => `fixture.${Buffer.from(JSON.stringify({aud:'fixture-project',iss:'https://securetoken.google.com/fixture-project',sub:uid,iat:Date.now()/1000,exp:Date.now()/1000+3600,...claims})).toString('base64url')}.signature`;
   const call = (action, payload = {}, token = 'participant', extra = {}) => context.doPost({postData:{contents:JSON.stringify({version:1, requestId:'request_12345678', action, payload,
     idToken:['participant','admin','outsider'].includes(token) ? jwt(token) : token,...extra})}});
-  return {context, sheets, values, writes, call, set, jwt, sent, sendResults, reads: () => reads};
+  return {context, sheets, values, writes, call, set, jwt, sent, sendResults, registrationChecks, registrationResults, reads: () => reads};
 }
 const date = '2026-11-16 21:30';
 test('session verifies role without loading character names', () => {
@@ -279,11 +279,11 @@ function futureConfirmation(f, slot='2099-11-16 21:30') {
   f.set('日程調整','B7',new Date('1899-12-30T'+slot.slice(11)+':00+09:00'));
   f.set('開催日程','B3',new Date(slot.replace(' ','T')+':00+09:00'));
 }
-test('push settings require authentication and store only device destination metadata', () => {
+test('push settings permit browser opt-in without login and store only device destination metadata', () => {
   const f=fixture();
   assert.equal(f.call('af.push.status').data.ready,false);
   assert.equal(f.call('af.push.subscribe',{token:deviceToken}).error.code,'CONFIG_REQUIRED');
-  assert.equal(f.call('af.push.status',{},'').error.code,'AUTH_REQUIRED');
+  assert.equal(f.call('af.push.status',{},'').data.ready,false);
   f.values.set('AF_PUSH_READY','true');
   assert.equal(f.call('af.push.subscribe',{token:deviceToken}).data.enabled,true);
   const keys=[...f.values.keys()].filter(key=>key.startsWith('AF_PUSH_DEVICE_'));
@@ -405,4 +405,33 @@ test('FCM acceptance requires a message ID from the requested project; diagnosti
   const attempt=f.context.diagnosePushNotifications().lastAttempt;
   assert.equal(attempt.project,'fixture-project');assert.equal(attempt.messageId,'projects/fixture-project/messages/message_123');
   assert.equal(attempt.accepted,true);assert.equal(attempt.validateOnly,false);
+});
+
+
+test('anonymous notification setup cannot read schedules or names, send notifications, or manage links', () => {
+  const f=fixture();f.values.set('AF_PUSH_READY','true');
+  assert.equal(f.call('af.push.subscribe',{token:deviceToken},'').data.enabled,true);
+  assert.equal(f.call('af.push.status',{token:deviceToken},'').data.enabled,true);
+  assert.equal(f.call('af.push.status',{token:deviceToken+'-other'},'').data.enabled,false);
+  for(const action of ['af.read','af.session','af.history','af.answers.save','af.confirm','af.push.test','udm.links.list','udm.links.share']) {
+    assert.equal(f.call(action,{},'').error.code,'AUTH_REQUIRED');
+  }
+  assert.equal(f.reads(),0);assert.equal(f.sent.length,0);
+  assert.equal(f.call('af.push.unsubscribe',{token:deviceToken},'').data.enabled,false);
+});
+
+
+test('anonymous opt-in validates new FCM destinations for our project without sending a notification', () => {
+  const f=fixture();f.values.set('AF_PUSH_READY','true');
+  f.registrationResults.push(400);
+  assert.equal(f.call('af.push.subscribe',{token:deviceToken},'').error.code,'INVALID_REQUEST');
+  assert.equal([...f.values.keys()].some(key=>key.startsWith('AF_PUSH_DEVICE_')),false);
+  assert.equal(f.call('af.push.subscribe',{token:deviceToken},'').data.enabled,true);
+  assert.equal(f.registrationChecks.length,2);
+  for(const check of f.registrationChecks) {
+    assert.equal(check.url,'https://fcm.googleapis.com/v1/projects/fixture-project/messages:send');
+    assert.equal(check.validate_only,true);assert.equal(check.message.token,deviceToken);
+  }
+  f.call('af.push.subscribe',{token:deviceToken},'');assert.equal(f.registrationChecks.length,2);
+  assert.equal(f.sent.length,0);
 });

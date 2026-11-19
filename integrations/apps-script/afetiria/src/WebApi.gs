@@ -18,15 +18,21 @@ function doPost(event) {
     if (request.action === 'udm.links.resolve') {
       return afOutput_({ version: 1, requestId: requestId, ok: true, data: afWithLock_(function () { return udmLinkResolve_(request.payload); }) });
     }
+    // Browser opt-in needs no account; token possession permits only that destination's settings.
+    if (['af.push.status', 'af.push.subscribe', 'af.push.unsubscribe'].indexOf(request.action) >= 0) {
+      const data = afWithLock_(function () {
+        if (request.action === 'af.push.status') return afPushStatus_(request.payload);
+        if (request.action === 'af.push.subscribe') return afPushSubscribe_(request.payload);
+        return afPushUnsubscribe_(request.payload);
+      });
+      return afOutput_({ version: 1, requestId: requestId, ok: true, data: data });
+    }
     const role = afIdentity_(request.idToken);
-    if (['af.session', 'af.read', 'af.answers.save', 'af.history', 'udm.links.share', 'af.push.status', 'af.push.subscribe', 'af.push.unsubscribe'].indexOf(request.action) < 0) {
+    if (['af.session', 'af.read', 'af.answers.save', 'af.history', 'udm.links.share'].indexOf(request.action) < 0) {
       afAssert_(role === 'admin', 'FORBIDDEN');
     }
     const data = request.action === 'af.session' ? { role: role } : afWithLock_(function () {
       if (request.action === 'af.push.test') return afPushTest_(request.payload, requestId);
-      if (request.action === 'af.push.status') return afPushStatus_(request.payload);
-      if (request.action === 'af.push.subscribe') return afPushSubscribe_(request.payload);
-      if (request.action === 'af.push.unsubscribe') return afPushUnsubscribe_(request.payload);
       if (request.action === 'udm.links.share') return udmLinkShare_(request.payload);
       if (request.action === 'udm.links.list') return udmLinkList_();
       if (request.action === 'udm.links.create') return udmLinkCreate_(request.payload);

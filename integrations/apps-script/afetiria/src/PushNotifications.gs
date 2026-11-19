@@ -46,6 +46,12 @@ function afPushSubscribe_(payload) {
   const previous = afPushStored_(key);
   const devices = afPushDevices_();
   afAssert_(previous || devices.length < AF_PUSH_MAX_DEVICES, 'CAPACITY');
+  if (!previous) {
+    // Public opt-in must prove this is an FCM destination for our project before consuming a slot.
+    const request = afPushRequest_({ token: token, data: { type: 'registration-check' } }, true);
+    const response = UrlFetchApp.fetch(request.url, request);
+    afAssert_(afPushResponse_(response, request).accepted, 'INVALID_REQUEST');
+  }
   const event = afPushStored_(AF_PUSH_EVENT);
   properties.setProperty(key, JSON.stringify({ token: token, updatedAt: Date.now(),
     lastEvent: previous ? previous.lastEvent || '' : event && event.id || '', attempts: previous && previous.attempts || 0, attemptEvent: previous && previous.attemptEvent || '' }));
