@@ -1,0 +1,10 @@
+import type { components } from '../generated/api.ts';
+export type Models = components['schemas'];
+export type Answer = Models['Answer'];
+export type Role = Models['Role'];
+export type Member = Models['Member'];
+export type Slot = Models['Slot'];
+export type Schedule = Models['Schedule'];
+export type Change = Models['Change'];
+export type History = Models['History'];
+export type SharedLink = Models['SharedLink'];

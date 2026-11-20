@@ -1,13 +1,5 @@
-export type Answer = "○" | "△" | "×" | "";
-export type Role = "participant" | "admin";
-export type Member = { id: string; name: string; required: boolean };
-export type Slot = { key: string; date: string; time: string; count: number; judgment: string; hasAnswers?: boolean };
-export type Schedule = { weekId: string; members: Member[]; slots: Slot[];
-  answers: Record<string, Record<string, Answer>>; confirmed: string | null;
-  minParticipants: number; maxParticipants: number };
-export type Change = { slot: string; before: Answer; answer: Answer };
-export type History = { items: { weekId: string; confirmed: string | null; status: string }[]; nextOffset: number | null };
-
+import type { Answer, Role, Member, Slot, Schedule, Change, History } from "./models.ts";
+export type { Answer, Role, Member, Slot, Schedule, Change, History } from "./models.ts";
 
 export const answers: Answer[] = ["○", "△", "×", ""];
 export function isSchedule(value: unknown): value is Schedule {

@@ -1,24 +1,7 @@
 import { bffRoute, bffEndpoint } from "@udm/contracts/routes";
-import { validateEndpoint } from "@/lib/sheets-transport/client.mjs";
-export type Action =
-  | "af.push.test"
-  | "af.push.status"
-  | "af.push.subscribe"
-  | "af.push.unsubscribe"
-  | "af.session"
-  | "af.read"
-  | "af.answers.save"
-  | "af.history"
-  | "af.members.add"
-  | "af.members.required"
-  | "af.candidates.add"
-  | "af.candidates.remove"
-  | "af.confirm"
-  | "udm.links.share"
-  | "udm.links.resolve"
-  | "udm.links.list"
-  | "udm.links.create"
-  | "udm.links.update";
+import { validateEndpoint } from "../sheets-transport/client.ts";
+export type { Action } from "@udm/contracts/routes";
+import type { Action } from "@udm/contracts/routes";
 
 const messages: Record<string, string> = {
   AUTH_REQUIRED: "ログインし直してください。",
@@ -47,12 +30,7 @@ export class ApiError extends Error {
     super(messages[code] || "通信結果を確認できませんでした。");
   }
 }
-export type ApiMeta = {
-  sourceFetchedAt: number;
-  expiresAt: number;
-  remainingTtlMs: number;
-  revision: string;
-};
+export type ApiMeta = import("@udm/contracts/models").Models["Meta"];
 export type ApiResult<T> = { data: T; meta?: ApiMeta; receivedAt: number };
 export function remainingTtl(result: ApiResult<unknown> | undefined) {
   return result

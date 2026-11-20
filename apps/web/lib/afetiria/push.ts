@@ -2,7 +2,7 @@ import { getApp, getApps, initializeApp } from "firebase/app";
 import { getFirebaseConfig } from "./firebase";
 import { PushSetupError, pushFailureCode, waitForPushWorker } from "./push-registration";
 export const PUSH_TOKEN_KEY = "udm:afetiria:push-token";
-export type PushStatus = {ready: boolean; enabled: boolean; deliveryIssue: boolean};
+export type PushStatus = import("@udm/contracts/models").Models["PushStatus"];
 export function isPushStatus(value: unknown): value is PushStatus {
   const item = value as PushStatus | null;
   return !!item && typeof item.ready === "boolean" && typeof item.enabled === "boolean" && typeof item.deliveryIssue === "boolean";
@@ -33,7 +33,7 @@ export async function deleteDevicePushToken() {
   await deleteToken(getMessaging(getPushApp()));
 }
 
-export type PushTestResult = {total: number; accepted: number; failed: number; removed: number};
+export type PushTestResult = import("@udm/contracts/models").Models["PushTestResult"];
 export function isPushTestResult(value: unknown): value is PushTestResult {
   const item=value as PushTestResult | null;
   return !!item && [item.total,item.accepted,item.failed,item.removed].every(count => Number.isSafeInteger(count) && count >= 0 && count <= 100) && item.total === item.accepted + item.failed + item.removed;

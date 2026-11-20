@@ -26,7 +26,7 @@ ContentServiceのリダイレクトを含む実際のGoogle環境でのCORS動�
 | B2 | no |
 | C2 | 空欄 |
 
-3. このフォルダーのCode.gs・appsscript.jsonを試験プロジェクトへ配置する。
+3. pnpm run compileで生成した、このフォルダーのdist/Code.gs・dist/appsscript.jsonを試験プロジェクトへ配置する。
 4. Script Propertiesに次を設定する。実値をソースへ埋め込まない。
 
 | キー | 値 |
@@ -45,7 +45,7 @@ APIキーとIDトークンのプロジェクトが一致し、失効・期限切
 
 ## クライアント
 
-apps/web/lib/sheets-transport/client.mjsのcreateProbeClientへ、試験用exec URLとgetIdToken関数を渡す。
+apps/web/lib/sheets-transport/client.tsのcreateProbeClientへ、試験用exec URLとgetIdToken関数を渡す。
 getIdTokenはFirebase SDK等で取得した有効なトークンを返す。URL・ログ・アプリ独自ストレージへ保存しない。
 read()、write({expectedRevision, value})、checkAdmin()だけを提供する。
 リビジョンはread()の結果を使い、保存する値はyes/maybe/no/空文字のいずれか。
@@ -60,11 +60,12 @@ write()の通信失敗ではoutcomeUnknownがtrueとなる。保存が実行さ�
 Node.js 24で、リポジトリのルートから実行する。
 
 ```sh
-node --test tests/sheets-transport/transport.test.mjs
+pnpm run compile
+node --test .build/tests/sheets-transport/transport.test.js
 ```
 
 テストはApps ScriptのGoogleサービスを偽物に置き換え、ネットワークや本番シートへ接続しない。
-ブラウザー試験はtools/sheets-transport/browser-check.mjsのrunBrowserChecks(chromium, launchOptions)を使用する。既存EdgeならlaunchOptionsに{ channel: "msedge" }を渡せる。
+ブラウザー試験はtools/sheets-transport/browser-check.tsのrunBrowserChecks(chromium, launchOptions)を使用する。既存EdgeならlaunchOptionsに{ channel: "msedge" }を渡せる。
 Playwrightは実行環境から渡す方式とし、この検証のためにUDMの依存関係を変更しない。
 
 ## 実接続の合格条件

@@ -1,12 +1,5 @@
 name: Validate and deploy Go BFF
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/bff/**'
-      - 'tools/cloud-run/**'
-      - 'tests/cloud-run/**'
-      - '.github/workflows/bff.yml'
   push:
     branches: [main]
     paths:
@@ -14,6 +7,12 @@ on:
       - 'tools/cloud-run/**'
       - 'tests/cloud-run/**'
       - '.github/workflows/bff.yml'
+      - 'packages/contracts/**'
+      - 'tools/contracts/**'
+      - 'tools/build.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.tools.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,6 +30,7 @@ jobs:
         with:
           go-version-file: apps/bff/go.mod
           cache: false
+      - run: go -C apps/bff generate ./internal/adapter/http
       - name: Test concurrent requests
         working-directory: apps/bff
         run: go test -race ./...
@@ -44,7 +44,7 @@ jobs:
       - name: Test deployment scripts without cloud access
         run: python3 -m unittest discover -s tests/cloud-run
       - name: Build runtime container
-        run: docker build --tag udm-bff:check apps/bff
+        run: docker build --file apps/bff/Dockerfile --tag udm-bff:check .
   deploy:
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.UDM_BFF_ENABLED == 'true'

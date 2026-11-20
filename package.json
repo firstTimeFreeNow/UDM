@@ -6,24 +6,36 @@
   },
   "packageManager": "pnpm@12.18.0",
   "scripts": {
-    "dev": "pnpm --filter @udm/web dev",
-    "build": "pnpm --filter @udm/web build",
-    "typecheck": "pnpm --filter @udm/web typecheck",
-    "test:release": "node --test .github/scripts/*.test.mjs",
-    "test:planner": "node --test tests/*.test.mjs",
-    "test:afetiria": "node --test tests/apps-script/*.test.mjs tests/sheets-transport/*.test.mjs",
-    "check:apps-script": "node tools/apps-script/deploy.mjs validate",
+    "dev": "pnpm run compile && pnpm --filter @udm/web dev",
+    "build": "pnpm run compile && pnpm --filter @udm/web build",
+    "typecheck": "pnpm run compile && pnpm run typecheck:tools && pnpm run typecheck:apps-script && pnpm run typecheck:workers && pnpm --filter @udm/web typecheck",
+    "test:release": "pnpm run compile && node --test .build/.github/scripts/*.test.js",
+    "test:planner": "pnpm run compile && node --test .build/tests/*.test.js",
+    "test:afetiria": "pnpm run compile && node --test .build/tests/apps-script/*.test.js .build/tests/sheets-transport/*.test.js",
+    "check:apps-script": "pnpm run compile && node .build/tools/apps-script/deploy.js validate",
     "test:bff": "pnpm --filter @udm/bff test",
     "dev:bff": "pnpm --filter @udm/bff dev",
     "build:bff": "pnpm --filter @udm/bff build",
-    "test": "pnpm run test:release && pnpm run test:planner && pnpm run test:afetiria && pnpm run test:bff && pnpm run test:api-client && pnpm run test:cloud-run",
+    "test": "pnpm run test:release && pnpm run test:planner && pnpm run test:afetiria && pnpm run test:bff && pnpm run test:api-client && pnpm run test:cloud-run && pnpm run test:ci && pnpm run test:contracts",
     "deploy:bff": "bash tools/cloud-run/deploy.sh",
     "deploy:apps-script": "pnpm --filter @udm/apps-script deploy",
-    "test:api-client": "node --test tests/bff/*.test.mjs",
-    "test:cloud-run": "python3 -m unittest discover -s tests/cloud-run"
+    "test:api-client": "pnpm run compile && node --test .build/tests/bff/*.test.js",
+    "test:cloud-run": "python3 -m unittest discover -s tests/cloud-run",
+    "generate:contracts": "node tools/contracts/generate.ts",
+    "compile": "pnpm run generate:contracts && node tools/build.ts",
+    "generate:bff": "go -C apps/bff generate ./internal/adapter/http",
+    "typecheck:tools": "tsc -p tsconfig.tools.json",
+    "typecheck:apps-script": "tsc -p apps/apps-script/tsconfig.json",
+    "typecheck:workers": "tsc -p apps/web/workers/tsconfig.json",
+    "test:ci": "pnpm run compile && node --test .build/tests/ci/*.test.js",
+    "test:contracts": "pnpm run compile && node --test .build/tests/contracts/*.test.js"
   },
   "devDependencies": {
     "@google/clasp": "3.4.1",
+    "@types/google-apps-script": "^2.0.15",
+    "@types/node": "^24.19.2",
+    "openapi-typescript": "^7.13.0",
     "typescript": "5.9.3"
-  }
+  },
+  "type": "module"
 }

@@ -18,6 +18,9 @@ runs:
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
+    - name: Test shared contracts and CI selection
+      shell: bash
+      run: pnpm run test:contracts && pnpm run test:ci
     - name: Test release automation
       shell: bash
       run: pnpm run test:release

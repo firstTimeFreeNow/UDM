@@ -1,0 +1,306 @@
+[
+  {
+    "name": "valid schedule",
+    "valid": true,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "empty projected overview",
+    "valid": true,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {}
+    }
+  },
+  {
+    "name": "missing confirmation",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "duplicate member",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        },
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "unknown answer",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "yes"
+        }
+      }
+    }
+  },
+  {
+    "name": "unknown slot",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○",
+          "2026-11-18 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "invalid half hour",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:15",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "wrong capacity",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 9,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "missing required flag",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A"
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": 1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  },
+  {
+    "name": "negative attendance",
+    "valid": false,
+    "value": {
+      "weekId": "2026-11-16",
+      "confirmed": null,
+      "minParticipants": 6,
+      "maxParticipants": 8,
+      "members": [
+        {
+          "id": "m_00000000-0000-0000-0000-000000000001",
+          "name": "A",
+          "required": true
+        }
+      ],
+      "slots": [
+        {
+          "key": "2026-11-16 21:30",
+          "date": "2026-11-16",
+          "time": "21:30",
+          "count": -1,
+          "judgment": "人数不足"
+        }
+      ],
+      "answers": {
+        "m_00000000-0000-0000-0000-000000000001": {
+          "2026-11-16 21:30": "○"
+        }
+      }
+    }
+  }
+]

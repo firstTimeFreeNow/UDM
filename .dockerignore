@@ -1,0 +1,14 @@
+**
+!apps/
+!apps/bff/
+!apps/bff/go.mod
+!apps/bff/go.sum
+!apps/bff/cmd/
+!apps/bff/cmd/**
+!apps/bff/internal/
+!apps/bff/internal/**
+!packages/
+!packages/contracts/
+!packages/contracts/openapi.json
+**/api.gen.go
+**/routes.gen.go

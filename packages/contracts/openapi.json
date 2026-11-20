@@ -1,0 +1,1819 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "UDM API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session": {
+      "get": {
+        "operationId": "session",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.session",
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/overview": {
+      "get": {
+        "operationId": "overview",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.read",
+        "x-udm-view": "schedule",
+        "parameters": [
+          {
+            "name": "fresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/answers": {
+      "get": {
+        "operationId": "answers",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.read",
+        "x-udm-view": "answer",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "saveAnswers",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.answers.save",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAnswersRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/admin": {
+      "get": {
+        "operationId": "admin",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.read",
+        "x-udm-view": "admin",
+        "parameters": [
+          {
+            "name": "fresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/history": {
+      "get": {
+        "operationId": "history",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.history",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            }
+          }
+        ],
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/members": {
+      "post": {
+        "operationId": "addMember",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.members.add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/members/required": {
+      "patch": {
+        "operationId": "requiredMember",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.members.required",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequiredMemberRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/candidates": {
+      "post": {
+        "operationId": "addCandidate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.candidates.add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCandidateRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "removeCandidate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.candidates.remove",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveCandidateRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/confirmation": {
+      "post": {
+        "operationId": "confirm",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.confirm",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/afetiria-extra/push/status": {
+      "post": {
+        "operationId": "pushStatus",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.push.status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/afetiria-extra/push/subscription": {
+      "post": {
+        "operationId": "subscribe",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.push.subscribe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unsubscribe",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.push.unsubscribe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/afetiria-extra/push/test": {
+      "post": {
+        "operationId": "testPush",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTestResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "af.push.test",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/links/resolve": {
+      "post": {
+        "operationId": "resolveLink",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedLinkResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "udm.links.resolve",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveLinkRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/links/share": {
+      "post": {
+        "operationId": "shareLink",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "udm.links.share",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareLinkRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    },
+    "/v1/links": {
+      "get": {
+        "operationId": "listLinks",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "udm.links.list",
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createLink",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "udm.links.create",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLinkRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "updateLink",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-udm-action": "udm.links.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLinkRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "firebaseToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Answer": {
+        "type": "string",
+        "enum": [
+          "○",
+          "△",
+          "×",
+          ""
+        ]
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "participant",
+          "admin"
+        ]
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^m_[a-f0-9-]{36}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "required"
+        ]
+      },
+      "Slot": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):(00|30)$"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "judgment": {
+            "type": "string",
+            "enum": [
+              "開催可能",
+              "必須未達",
+              "人数不足",
+              "人数調整"
+            ]
+          },
+          "hasAnswers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "date",
+          "time",
+          "count",
+          "judgment"
+        ]
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            },
+            "maxItems": 12
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "maxItems": 54
+          },
+          "answers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/Answer"
+              }
+            }
+          },
+          "confirmed": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$",
+            "nullable": true
+          },
+          "minParticipants": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "maxParticipants": {
+            "type": "integer",
+            "enum": [
+              8
+            ]
+          }
+        },
+        "required": [
+          "weekId",
+          "members",
+          "slots",
+          "answers",
+          "confirmed",
+          "minParticipants",
+          "maxParticipants"
+        ]
+      },
+      "Change": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$"
+          },
+          "before": {
+            "$ref": "#/components/schemas/Answer"
+          },
+          "answer": {
+            "$ref": "#/components/schemas/Answer"
+          }
+        },
+        "required": [
+          "slot",
+          "before",
+          "answer"
+        ]
+      },
+      "HistoryItem": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "confirmed": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekId",
+          "confirmed",
+          "status"
+        ]
+      },
+      "History": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryItem"
+            },
+            "maxItems": 12
+          },
+          "nextOffset": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextOffset"
+        ]
+      },
+      "InternalPath": {
+        "type": "string",
+        "pattern": "^/UDM/(?:[a-zA-Z0-9_-]+/)*$",
+        "maxLength": 240
+      },
+      "SharedLink": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{4,32}$"
+          },
+          "path": {
+            "$ref": "#/components/schemas/InternalPath"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "path",
+          "active",
+          "updatedAt"
+        ]
+      },
+      "LinkList": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedLink"
+            },
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "links"
+        ]
+      },
+      "ResolvedLink": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "$ref": "#/components/schemas/InternalPath"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "ShareResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "path": {
+            "$ref": "#/components/schemas/InternalPath"
+          }
+        },
+        "required": [
+          "code",
+          "path"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "PushStatus": {
+        "type": "object",
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "deliveryIssue": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ready",
+          "enabled",
+          "deliveryIssue"
+        ]
+      },
+      "PushTestResult": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "removed": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accepted",
+          "failed",
+          "removed",
+          "total"
+        ]
+      },
+      "SaveResult": {
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "boolean"
+          },
+          "savedCount": {
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/components/schemas/Schedule"
+          }
+        },
+        "required": [
+          "saved",
+          "savedCount",
+          "state"
+        ]
+      },
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "sourceFetchedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "remainingTtlMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceFetchedAt",
+          "expiresAt",
+          "remainingTtlMs",
+          "revision"
+        ]
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "AUTH_REQUIRED",
+          "FORBIDDEN",
+          "CONFIG_REQUIRED",
+          "INVALID_REQUEST",
+          "WEEK_CHANGED",
+          "CONFLICT",
+          "BUSY",
+          "CAPACITY",
+          "HAS_ANSWERS",
+          "INELIGIBLE",
+          "DUPLICATE",
+          "INTERNAL_ERROR",
+          "UPSTREAM_UNAVAILABLE",
+          "NOT_FOUND",
+          "INVALID_RESPONSE"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/ErrorCode"
+              },
+              "outcomeUnknown": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "error"
+        ]
+      },
+      "SaveAnswersRequest": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "memberId": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            }
+          }
+        },
+        "required": [
+          "weekId",
+          "memberId",
+          "changes"
+        ]
+      },
+      "AddMemberRequest": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "weekId",
+          "name",
+          "required"
+        ]
+      },
+      "RequiredMemberRequest": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "memberId": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "before": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "weekId",
+          "memberId",
+          "required",
+          "before"
+        ]
+      },
+      "AddCandidateRequest": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):(00|30)$"
+          }
+        },
+        "required": [
+          "weekId",
+          "date",
+          "time"
+        ]
+      },
+      "RemoveCandidateRequest": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "slot": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$"
+          }
+        },
+        "required": [
+          "weekId",
+          "slot"
+        ]
+      },
+      "ConfirmRequest": {
+        "type": "object",
+        "properties": {
+          "weekId": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "slot": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$"
+          },
+          "before": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} ([01]\\d|2[0-3]):(00|30)$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "weekId",
+          "slot",
+          "before"
+        ]
+      },
+      "PushTokenRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "PushTestRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ]
+      },
+      "ResolveLinkRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "ShareLinkRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "$ref": "#/components/schemas/InternalPath"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "CreateLinkRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "$ref": "#/components/schemas/InternalPath"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "UpdateLinkRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "path": {
+            "$ref": "#/components/schemas/InternalPath"
+          },
+          "beforePath": {
+            "$ref": "#/components/schemas/InternalPath"
+          },
+          "beforeActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "active",
+          "path",
+          "beforePath",
+          "beforeActive"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Schedule"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "HistoryResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/History"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "SaveResultResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/SaveResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "PushStatusResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/PushStatus"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "PushTestResultResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/PushTestResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "ResolvedLinkResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResolvedLink"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "ShareResultResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ShareResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      },
+      "LinkListResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/LinkList"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "version",
+          "requestId",
+          "ok",
+          "data"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "firebaseToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

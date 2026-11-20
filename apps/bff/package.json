@@ -2,9 +2,10 @@
   "name": "@udm/bff",
   "private": true,
   "scripts": {
-    "dev": "go run ./cmd/bff",
-    "build": "go build -trimpath -ldflags=\"-s -w\" -o dist/bff ./cmd/bff",
-    "test": "go test -race ./...",
-    "vet": "go vet ./..."
+    "dev": "pnpm run generate && go run ./cmd/bff",
+    "build": "pnpm run generate && go build -trimpath -ldflags=\"-s -w\" -o dist/bff ./cmd/bff",
+    "test": "pnpm run generate && go test -race ./...",
+    "vet": "pnpm run generate && go vet ./...",
+    "generate": "go generate ./internal/adapter/http"
   }
 }

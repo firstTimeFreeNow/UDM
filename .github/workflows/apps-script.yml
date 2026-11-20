@@ -1,17 +1,6 @@
 name: Validate and deploy Apps Script
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/apps-script/**'
-      - 'tools/apps-script/**'
-      - 'packages/contracts/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tests/apps-script/**'
-      - '.github/workflows/apps-script.yml'
   push:
     branches: [main]
     paths:
@@ -23,6 +12,9 @@ on:
       - 'pnpm-workspace.yaml'
       - 'tests/apps-script/**'
       - '.github/workflows/apps-script.yml'
+      - 'tools/contracts/**'
+      - 'tools/build.ts'
+      - 'tsconfig.tools.json'
   workflow_dispatch:
     inputs:
       mode:
@@ -52,8 +44,10 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: node tools/apps-script/deploy.mjs validate
-      - run: node --test tests/apps-script/*.test.mjs
+      - run: pnpm run compile
+      - run: pnpm run typecheck:apps-script
+      - run: node .build/tools/apps-script/deploy.js validate
+      - run: node --test .build/tests/apps-script/*.test.js
 
   deploy:
     needs: validate
@@ -72,10 +66,12 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run compile
+      - run: pnpm run typecheck:apps-script
       - name: Push source and update existing deployment
         env:
           CLASPRC_JSON: ${{ secrets.AF_CLASPRC_JSON }}
           AF_SCRIPT_ID: ${{ vars.AF_SCRIPT_ID }}
           AF_DEPLOYMENT_ID: ${{ vars.AF_DEPLOYMENT_ID }}
           AF_DEPLOY_MODE: ${{ inputs.mode || vars.AF_APPS_SCRIPT_MODE || 'deploy' }}
-        run: node tools/apps-script/deploy.mjs "$AF_DEPLOY_MODE"
+        run: node .build/tools/apps-script/deploy.js "$AF_DEPLOY_MODE"
