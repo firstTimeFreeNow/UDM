@@ -66,7 +66,7 @@ function afPushUnsubscribe_(payload) {
 }
 function afPushCurrent_() {
   const week = weekId_();
-  const selected = sheet_(AF.summary).getRange('B3').getValue();
+  const selected = afSelectedDate_(sheet_(AF.summary).getRange('B3').getValue());
   if (!(selected instanceof Date)) return { key: '', weekId: week, slot: '', upcoming: false };
   const slot = slotKey_(fmtDate_(selected), fmtTime_(selected));
   const valid = listSlots_().some(function (candidate) { return candidate.key === slot; });

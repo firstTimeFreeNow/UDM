@@ -71,6 +71,33 @@ function time_(s) {
     return (h * 60 + m) / 1440;
 }
 function slotKey_(d, t) { return d + ' ' + t; }
+/** Accept both the original date value and the detailed scheduling dropdown label. */
+function afSelectedDate_(value) {
+    if (typeof value !== 'string') return value;
+    const match = /^(\d{4})\/(\d{2})\/(\d{2})\([日月火水木金土]\) ([01]\d|2[0-3]):(00|30)｜○\d{1,2}人・△\d{1,2}人｜必須メンバー[○△×]$/.exec(value);
+    if (!match) return value;
+    const day = match[1] + '-' + match[2] + '-' + match[3];
+    const clock = match[4] + ':' + match[5];
+    const selected = new Date(day + 'T' + clock + ':00+09:00');
+    // Do not silently normalize an impossible date into another month.
+    return !isNaN(selected.getTime()) && fmtDate_(selected) === day && fmtTime_(selected) === clock ? selected : value;
+}
+/** Keep the dropdown label intact, while showing only the confirmed date in B3. */
+function afFormatSelectedDate_() {
+    const cell = sheet_(AF.summary).getRange('B3');
+    const value = cell.getValue();
+    const selected = afSelectedDate_(value);
+    const base = 'yyyy/mm/dd(ddd) hh:mm';
+    let pattern = base;
+    if (typeof value === 'string' && selected instanceof Date) {
+        const day = fmtDate_(selected);
+        const weekday = '日月火水木金土'[new Date(day + 'T00:00:00Z').getUTCDay()];
+        const display = day.replace(/-/g, '/') + '(' + weekday + ') ' + fmtTime_(selected);
+        // The fourth section is the text display. Numeric dates keep their original format.
+        pattern = base + ';' + base + ';' + base + ';"' + display + '"';
+    }
+    if (cell.getNumberFormat() !== pattern) cell.setNumberFormat(pattern);
+}
 /**
  * キャッシュは表示高速化専用。保存時の正本は常に回答管理シート。
  * シートとWeb実行の両方で同じScriptCacheを参照する。
@@ -142,6 +169,10 @@ function onOpen() {
 function onEdit(event) {
     if (!event || !event.range) return;
     const name = event.range.getSheet().getName();
+    if (name === AF.summary && event.range.getRow() <= 3 && event.range.getLastRow() >= 3 &&
+        event.range.getColumn() <= 2 && event.range.getLastColumn() >= 2) {
+        afFormatSelectedDate_();
+    }
     if ([AF.admin, AF.members, AF.main].includes(name)) {
         invalidateAnswerCache_();
     }
@@ -539,7 +570,8 @@ function installRolloverTrigger() {
 }
 /**
  * 開催日時の選択から確定を判断する。
- * 「開催日程」B3は日付と時刻を含む単一セル。
+ * 「開催日程」B3は日時または人数付きの選択肢を保存する単一セル。
+ * 人数付きの値は日時へ変換し、表示は従来どおり日時のみとする。
  * 別の開催状態セルは使用しない。
  *
  * 対象日時から2時間経過した場合に履歴を記録し、
@@ -558,7 +590,7 @@ function checkScheduleRollover() {
         const props = rolloverProperties_();
         const week = weekId_();
         const pending = props.getProperty('pendingRolloverWeek');
-        const selected = summary.getRange('B3').getValue();
+        const selected = afSelectedDate_(summary.getRange('B3').getValue());
         // 処理再開中でなければ、選択された日時が現行候補に含まれるかを確認する。
         if (!pending) {
             if (!(selected instanceof Date)) {

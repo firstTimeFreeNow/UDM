@@ -136,7 +136,7 @@ function afState_() {
       !ids.has(member.id) && !names.has(member.name), 'CONFIG_REQUIRED');
     ids.add(member.id); names.add(member.name);
   });
-  const selected = sheet_(AF.summary).getRange('B3').getValue();
+  const selected = afSelectedDate_(sheet_(AF.summary).getRange('B3').getValue());
   const confirmed = selected instanceof Date ? slotKey_(fmtDate_(selected), fmtTime_(selected)) : null;
   const answers = {};
   members.forEach(function (member) { answers[member.id] = data.answers[member.name] || {}; });
@@ -218,7 +218,15 @@ function afConfirm_(payload, state) {
   afAssert_(payload.before === state.confirmed, 'CONFLICT');
   const slot = state.slots.find(function (item) { return item.key === payload.slot; });
   afAssert_(slot && slot.judgment === '開催可能', 'INELIGIBLE');
-  sheet_(AF.summary).getRange('B3').setValue(new Date(slot.date + 'T' + slot.time + ':00+09:00'));
+  const summary = sheet_(AF.summary);
+  const selected = new Date(slot.date + 'T' + slot.time + ':00+09:00');
+  const option = summary.getRange('J9:J62').getValues().map(function (row) { return row[0]; }).find(function (value) {
+    const candidate = afSelectedDate_(value);
+    return typeof value === 'string' && candidate instanceof Date && candidate.getTime() === selected.getTime();
+  });
+  // The old numeric dropdown remains usable until the sheet is switched over.
+  summary.getRange('B3').setValue(option || selected);
+  afFormatSelectedDate_();
   SpreadsheetApp.flush();
   afCheckPushSafe_();
 }

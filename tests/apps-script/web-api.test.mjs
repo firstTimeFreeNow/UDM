@@ -21,7 +21,8 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
   for (const name of names) {
     const grid = Array.from({length: 100}, () => Array(26).fill(''));
     const formulas = new Map();
-    const sheet = { grid, formulas, getRange(...args) {
+    const formats = new Map();
+    const sheet = { grid, formulas, formats, getName: () => name, getRange(...args) {
       reads++;
       let [row, col, height = 1, width = 1] = args;
       if (typeof row === 'string') {
@@ -31,6 +32,9 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
         if (match[3]) {height = Number(match[4]) - row + 1; width = column(match[3]) - col + 1;}
       }
       const range = {
+        getSheet: () => sheet,
+        getRow: () => row, getLastRow: () => row + height - 1,
+        getColumn: () => col, getLastColumn: () => col + width - 1,
         getValues: () => grid.slice(row-1, row-1+height).map(values => values.slice(col-1, col-1+width)),
         getValue: () => grid[row-1][col-1],
         setValues(values) { assert.equal(values.length, height); values.forEach((values, index) => {
@@ -40,7 +44,8 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
         clearContent() {return range.setValues(Array.from({length: height}, () => Array(width).fill('')));},
         isBlank: () => range.getValues().every(values => values.every(value => value === '')),
         getFormulas: () => Array.from({length: height}, (_, i) => Array.from({length: width}, (_, j) => formulas.get(`${row+i}:${col+j}`) || '')),
-        setNumberFormat: () => range,
+        getNumberFormat: () => formats.get(`${row}:${col}`) || 'yyyy/mm/dd(ddd) hh:mm',
+        setNumberFormat(pattern) { formats.set(`${row}:${col}`, pattern); return range; },
       };
       return range;
     }, getLastRow() { let last = grid.length; while (last > 0 && grid[last-1].every(value => value === '')) last--; return last; },
@@ -93,6 +98,72 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
   return {context, sheets, values, writes, call, set, jwt, sent, sendResults, registrationChecks, registrationResults, reads: () => reads};
 }
 const date = '2026-11-16 21:30';
+const detailedOption = '2026/11/16(月) 21:30｜○8人・△0人｜必須メンバー○';
+test('a detailed dropdown selection remains a confirmation for the Web API and notification detector', () => {
+  const f = fixture();
+  f.set('開催日程', 'B3', detailedOption);
+  assert.equal(f.call('af.read').data.confirmed, date);
+  assert.equal(f.context.afPushCurrent_().slot, date);
+  const result = f.call('af.answers.save', {weekId:'2026-11-16',memberId:id(1),changes:[{slot:date,before:'○',answer:'×'}]});
+  assert.equal(result.ok, true);
+  assert.equal(result.data.state.confirmed, date);
+});
+test('selecting a detailed option changes only its cell display, including a merged B3:B4 edit', () => {
+  const f = fixture();
+  const summary = f.sheets.get('開催日程');
+  f.set('開催日程', 'B3', detailedOption);
+  f.writes.length = 0;
+  f.context.onEdit({range:summary.getRange('B3:B4')});
+  const pattern = summary.formats.get('3:2');
+  assert.equal(pattern.split(';')[3], '"2026/11/16(月) 21:30"');
+  assert.equal(summary.grid[2][1], detailedOption);
+  assert.equal(f.writes.length, 0);
+  // Plain dates, clearing, and malformed input must not retain a stale display.
+  for (const value of [new Date('2026-11-16T21:30:00+09:00'), '', 'invalid']) {
+    f.set('開催日程', 'B3', value);
+    f.context.onEdit({range:summary.getRange('B3:B4')});
+    assert.equal(summary.formats.get('3:2'), 'yyyy/mm/dd(ddd) hh:mm');
+    assert.equal(summary.grid[2][1], value);
+  }
+  f.context.onEdit({range:summary.getRange('A16')});
+  assert.equal(summary.formats.has('16:1'), false);
+});
+test('malformed or impossible dropdown dates are never treated as confirmations', () => {
+  const f = fixture();
+  for (const value of ['2026/02/30(月) 21:30｜○8人・△0人｜必須メンバー○',
+    detailedOption.replace('21:30', '21:45'), detailedOption + ' garbage', '2026/11/16(月) 21:30']) {
+    f.set('開催日程', 'B3', value);
+    assert.equal(f.call('af.read').data.confirmed, null);
+    assert.equal(f.context.afPushCurrent_().slot, '');
+  }
+});
+test('Web confirmation saves the current detailed option and displays only the date', () => {
+  const f = fixture();
+  f.set('開催日程', 'J9', detailedOption);
+  const result = f.call('af.confirm', {weekId:'2026-11-16',slot:date,before:null}, 'admin');
+  assert.equal(result.ok, true);
+  assert.equal(result.data.confirmed, date);
+  assert.equal(f.sheets.get('開催日程').grid[2][1], detailedOption);
+  assert.equal(f.sheets.get('開催日程').formats.get('3:2').split(';')[3], '"2026/11/16(月) 21:30"');
+});
+test('detailed selections retain the two-hour rollover deadline and archive a confirmed date', () => {
+  const f = fixture();
+  f.set('開催日程', 'B3', detailedOption);
+  f.writes.length = 0;
+  const original = Date.now;
+  try {
+    Date.now = () => new Date('2026-11-16T23:29:00+09:00').getTime();
+    f.context.checkScheduleRollover();
+    assert.equal(f.writes.length, 0);
+    Date.now = () => new Date('2026-11-16T23:30:00+09:00').getTime();
+    f.context.checkScheduleRollover();
+    const history = f.sheets.get('開催履歴').grid[3];
+    assert.equal(history[3].getTime(), new Date('2026-11-16T21:30:00+09:00').getTime());
+    assert.equal(history[4], '確定');
+    assert.equal(f.sheets.get('開催日程').grid[2][1], '');
+    assert.equal(f.sheets.get('設定・メンバー').grid[2][1].getTime(), new Date('2026-11-23T00:00:00+09:00').getTime());
+  } finally { Date.now = original; }
+});
 test('session verifies role without loading character names', () => {
   const f=fixture(); assert.equal(f.call('af.session').data.role,'participant'); assert.equal(f.reads(),0);
 });
