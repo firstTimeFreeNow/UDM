@@ -4,6 +4,7 @@ import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 import { LoadingProgress } from "./loading-progress";
+import { useSyncPaused } from "./data-provider";
 import { weekDays, changeDraft } from "@/lib/afetiria/answer-draft";
 import { PushTestForm } from "./push-test-form";
 import { NotificationSettings } from "./notification-settings";
@@ -54,6 +55,7 @@ function message(error: unknown) {
 }
 type ScheduleResult = ApiResult<Schedule> & { selection: string };
 function useSchedule(view: Exclude<View, "history">, memberId: string | null) {
+  const isSyncPaused = useSyncPaused();
   const { user } = useSession();
   const { mutate: mutateCache } = useSWRConfig();
   const [saving, setSaving] = useState(false);
@@ -110,12 +112,12 @@ function useSchedule(view: Exclude<View, "history">, memberId: string | null) {
     {
       keepPreviousData: true,
       refreshInterval: (result) =>
-        Math.max(1000, Math.min(300000, remainingTtl(result))),
+        isSyncPaused() ? 0 : Math.max(1000, Math.min(300000, remainingTtl(result))),
     },
   );
   const load = useCallback(
     async (force = true) => {
-      if (pendingWrite.current) return;
+      if (pendingWrite.current || isSyncPaused()) return;
       fresh.current = force;
       try {
         await refresh();
@@ -123,7 +125,7 @@ function useSchedule(view: Exclude<View, "history">, memberId: string | null) {
         /* SWR exposes the error. */
       }
     },
-    [refresh],
+    [refresh, isSyncPaused],
   );
   useEffect(() => {
     const update = () => {
@@ -861,6 +863,7 @@ function Admin({
   );
 }
 function HistoryPage() {
+  const isSyncPaused = useSyncPaused();
   const { user } = useSession();
   const {
     data,
@@ -891,7 +894,7 @@ function HistoryPage() {
       revalidateFirstPage: false,
       revalidateAll: true,
       refreshInterval: (pages) =>
-        Math.max(1000, Math.min(300000, remainingTtl(pages?.[0]))),
+        isSyncPaused() ? 0 : Math.max(1000, Math.min(300000, remainingTtl(pages?.[0]))),
     },
   );
   const items = data?.flatMap((page) => page.data.items) || [];

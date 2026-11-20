@@ -19,7 +19,7 @@ if args[:2]==['run','deploy']:
 with open(os.environ['MOCK_LOG'],'a') as f:f.write(json.dumps(entry)+'\\n')
 if args[:2]==['run','deploy'] and os.environ.get('FAIL_DEPLOY')=='1':sys.exit(9)
 if args[:3]==['secrets','versions','add']:print('projects/fixture-project/secrets/udm-bff-shared-secret/versions/7')
-if args[:3]==['secrets','versions','list']:print('7\\n6\\n5\\n4')
+if args[:3]==['secrets','versions','list']:print('7\\n6\\n5\\n4\\n2')
 if args[:3]==['run','services','describe']:print('https://udm-bff.fixture.run.app')
 '''.replace('PYTHON',sys.executable)
 
@@ -43,12 +43,14 @@ class DeploymentTest(unittest.TestCase):
   self.assertEqual(deploy['envMode'],0o600);self.assertFalse(Path(deploy['envFile']).exists())
   self.assertNotIn('UDM_BFF_SHARED_SECRET',deploy['env']);self.assertIn('UDM_BFF_SHARED_SECRET=udm-bff-shared-secret:7',deploy['args'])
   for flag,value in [('--min','0'),('--max','1'),('--max-instances','1')]:self.assertEqual(deploy['args'][deploy['args'].index(flag)+1],value)
-  self.assertEqual([c['args'][3] for c in calls if c['args'][:3]==['secrets','versions','disable']],['5','4'])
+  listing=next(c for c in calls if c['args'][:3]==['secrets','versions','list'])
+  self.assertIn('--filter=state!=DESTROYED',listing['args'])
+  self.assertEqual([c['args'][3] for c in calls if c['args'][:3]==['secrets','versions','destroy']],['5','4','2'])
   self.assertEqual(next(c['stdinLength'] for c in calls if 'stdinLength' in c),64)
   self.assertNotIn('b'*64,result.stdout+result.stderr+json.dumps(calls))
  def test_uncertain_deploy_is_not_retried_and_temp_config_is_removed(self):
   result,calls=self.invoke({'FAIL_DEPLOY':'1'});self.assertEqual(result.returncode,9)
   deploys=[c for c in calls if c['args'][:2]==['run','deploy']];self.assertEqual(len(deploys),1)
-  self.assertFalse(Path(deploys[0]['envFile']).exists());self.assertFalse(any(c['args'][:3]==['secrets','versions','disable'] for c in calls))
+  self.assertFalse(Path(deploys[0]['envFile']).exists());self.assertFalse(any(c['args'][:3]==['secrets','versions','destroy'] for c in calls))
 
 if __name__=='__main__':unittest.main()

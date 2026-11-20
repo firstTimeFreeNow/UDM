@@ -37,14 +37,15 @@ gcloud run deploy udm-bff \
  --set-secrets "UDM_BFF_SHARED_SECRET=udm-bff-shared-secret:${UDM_SECRET_VERSION}" \
  --allow-unauthenticated --ingress all --min 0 --max 1 --max-instances 1 \
  --cpu 1 --memory 256Mi --concurrency 40 --timeout 60 --cpu-throttling --no-cpu-boost --port 8080 --quiet
-# Retain the two latest secret versions so one previous revision can be restored.
-gcloud secrets versions list udm-bff-shared-secret --project "$GOOGLE_CLOUD_PROJECT" --filter='state=ENABLED' --format='value(name)' > "$UDM_DEPLOY_TEMP/versions"
+# Retain the two latest versions. Disabled versions are also billed, so destroy older ones.
+# Only clean up after a successful deployment; never delete the new version on failure.
+gcloud secrets versions list udm-bff-shared-secret --project "$GOOGLE_CLOUD_PROJECT" --filter='state!=DESTROYED' --format='value(name)' > "$UDM_DEPLOY_TEMP/versions"
 python3 - "$UDM_DEPLOY_TEMP/versions" > "$UDM_DEPLOY_TEMP/old-versions" <<'PY'
 import sys
 versions=sorted((int(line.strip().split('/')[-1]) for line in open(sys.argv[1]) if line.strip()),reverse=True)
 for version in versions[2:]:print(version)
 PY
 while IFS= read -r UDM_OLD_VERSION; do
- gcloud secrets versions disable "$UDM_OLD_VERSION" --secret udm-bff-shared-secret --project "$GOOGLE_CLOUD_PROJECT" --quiet
+ gcloud secrets versions destroy "$UDM_OLD_VERSION" --secret udm-bff-shared-secret --project "$GOOGLE_CLOUD_PROJECT" --quiet
 done < "$UDM_DEPLOY_TEMP/old-versions"
 gcloud run services describe udm-bff --project "$GOOGLE_CLOUD_PROJECT" --region "$UDM_BFF_REGION" --format='value(status.url)'
