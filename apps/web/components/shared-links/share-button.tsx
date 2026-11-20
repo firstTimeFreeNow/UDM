@@ -27,9 +27,9 @@ export function ShareButton({path, getToken}: {path: string; getToken: () => Pro
     } catch (error) { setError(error instanceof ApiError ? error.message : "共有リンクを発行できませんでした。"); }
     finally { setBusy(false); }
   }
-  return <div style={{textAlign:"right",marginBottom:"16px"}}>
+  return <div className={styles.sharePanel}>
     <button type="button" disabled={busy} onClick={() => void share()}>{busy ? "発行中…" : "共有リンクを発行"}</button>
-    {url && <p style={{overflowWrap:"anywhere"}}><a href={url}>{url}</a> <button type="button" onClick={() => void copy(url)}>コピー</button></p>}
+    {url && <div className={styles.shareResult}><a href={url}>{url}</a><button type="button" onClick={() => void copy(url)}>コピー</button></div>}
     {notice && <p role="status">{notice}</p>}
     {error && <p role="alert" className={styles.error}>{error}</p>}
   </div>;

@@ -538,9 +538,21 @@ function AnswerForm({
                 >
                   前日
                 </button>
-                <span>
+                <span className={styles.dayPosition}>
                   {dayIndex + 1} / {days.length}日
                 </span>
+                <select
+                  className={styles.mobileDaySelect}
+                  aria-label="回答する日付"
+                  value={days[dayIndex]}
+                  onChange={(event) => setActiveDay(event.target.value)}
+                >
+                  {days.map((day) => (
+                    <option key={day} value={day}>
+                      {dateLabel(day)}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   disabled={dayIndex === days.length - 1}
@@ -748,7 +760,7 @@ function Admin({
           {state.members.map((member) => (
             <li key={member.id}>
               <span>{member.name}</span>
-              <label className={styles.inline}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   checked={member.required}
@@ -780,7 +792,7 @@ function Admin({
             />
           </div>
           <div className={styles.inline}>
-            <label>
+            <label className={styles.checkboxLabel}>
               <input
                 type="checkbox"
                 checked={required}

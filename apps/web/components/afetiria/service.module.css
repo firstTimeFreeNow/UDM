@@ -19,8 +19,9 @@
 .shell .primary:hover:not(:disabled) { background: #173e5c; }
 .shell input:not([type=checkbox]), .shell textarea, .shell select { width: 100%; border: 1px solid #adbfce; border-radius: 7px; padding: 10px 12px; background: white; }
 .shell select { appearance: none; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23203548' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
-.shell input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--af-blue); }
+.shell input[type=checkbox] { width: 18px; height: 18px; margin: 0; flex-shrink: 0; accent-color: var(--af-blue); }
 .shell label { display: block; margin-bottom: 6px; font-size: .875rem; font-weight: 600; }
+.shell .checkboxLabel { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; cursor: pointer; }
 .login { max-width: 440px; margin: 24px auto; padding: 28px; border: 1px solid var(--af-border); border-radius: 12px; }
 .login input { margin-bottom: 18px; }
 .login form button { width: 100%; margin-top: 4px; }
@@ -38,6 +39,11 @@
 .list li:last-child { border-bottom: 0; }
 .inline { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .inline label { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.sharePanel { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; margin-bottom: 16px; text-align: right; }
+.sharePanel p { margin: 0; }
+.shareResult { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; max-width: 100%; }
+.shareResult a { min-width: 0; overflow-wrap: anywhere; }
+.shareResult button { flex-shrink: 0; }
 .formGrid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; }
 .formGrid input { min-width: 0; }
 .memberSelect { max-width: 420px; margin: 24px 0; }
@@ -63,9 +69,16 @@
 .skeleton div { height: 68px; border-radius: 8px; background: #edf2f6; animation: af-pulse 1.5s ease-in-out infinite; }
 .answerToolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
 .viewToggle,.dayNavigation { display: flex; align-items: center; gap: 8px; }
+.shell .mobileDaySelect { display: none; }
 .viewToggle button[aria-pressed=true],.dayTabs button[aria-pressed=true] { background: #e2eff8; border-color: #215780; color: #123c5c; font-weight: 700; }
 .dayTabs { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0 2px; }
 .dayTabs button { flex-shrink: 0; font-size: .875rem; padding: 6px 12px; }
+@media(max-width: 640px) {
+  .dayNavigation { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: 100%; }
+  .dayNavigation button { min-height: 44px; }
+  .dayPosition, .dayTabs { display: none; }
+  .shell .mobileDaySelect { display: block; min-width: 0; min-height: 44px; padding: 8px 32px 8px 10px; }
+}
 .emptyDay { padding: 20px; }
 .nextDay { display: flex; justify-content: flex-end; margin-top: 16px; }
 @keyframes af-spin { to {transform:rotate(360deg);} }
