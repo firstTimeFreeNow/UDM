@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "tools/**/*.ts",
+    ".github/scripts/**/*.ts",
+    "packages/contracts/**/*.ts",
+    "apps/web/lib/sheets-transport/**/*.ts"
+  ],
+  "exclude": [
+    "tools/sheets-transport/apps-script"
+  ]
+}

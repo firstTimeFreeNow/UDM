@@ -2,8 +2,8 @@
   "name": "@udm/apps-script",
   "private": true,
   "scripts": {
-    "check": "node ../../tools/apps-script/deploy.mjs validate",
-    "push": "node ../../tools/apps-script/deploy.mjs push",
-    "deploy": "node ../../tools/apps-script/deploy.mjs deploy"
+    "check": "pnpm -w run compile && node ../../.build/tools/apps-script/deploy.js validate",
+    "push": "pnpm -w run compile && node ../../.build/tools/apps-script/deploy.js push",
+    "deploy": "pnpm -w run compile && node ../../.build/tools/apps-script/deploy.js deploy"
   }
 }

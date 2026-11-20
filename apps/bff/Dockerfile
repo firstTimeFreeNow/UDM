@@ -1,8 +1,11 @@
 FROM golang:1.27.4-alpine AS build
-WORKDIR /src
-COPY go.mod ./
-COPY cmd ./cmd
-COPY internal ./internal
+WORKDIR /workspace/apps/bff
+COPY apps/bff/go.mod apps/bff/go.sum ./
+RUN go mod download
+COPY apps/bff/cmd ./cmd
+COPY apps/bff/internal ./internal
+COPY packages/contracts/openapi.json /workspace/packages/contracts/openapi.json
+RUN go generate ./internal/adapter/http
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /bff ./cmd/bff
 
 FROM scratch

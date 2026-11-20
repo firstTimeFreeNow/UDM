@@ -25,7 +25,7 @@ with open(sys.argv[1],'w',opener=lambda path,flags:os.open(path,flags,0o600)) as
  json.dump({name:os.environ[name] for name in ['UDM_FIREBASE_PROJECT_ID','UDM_ALLOWED_ORIGINS','AF_EXEC_URL']},out)
 PY
 gcloud auth configure-docker "${UDM_BFF_REGION}-docker.pkg.dev" --quiet
-docker build --tag "$UDM_IMAGE" "$UDM_DEPLOY_ROOT/apps/bff"
+docker build --file "$UDM_DEPLOY_ROOT/apps/bff/Dockerfile" --tag "$UDM_IMAGE" "$UDM_DEPLOY_ROOT"
 docker push "$UDM_IMAGE"
 UDM_SECRET_VERSION=$(printf '%s' "$UDM_BFF_SHARED_SECRET" | gcloud secrets versions add udm-bff-shared-secret --project "$GOOGLE_CLOUD_PROJECT" --data-file=- --format='value(name)' --quiet)
 unset UDM_BFF_SHARED_SECRET

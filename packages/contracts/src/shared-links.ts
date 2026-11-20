@@ -1,4 +1,5 @@
-export type SharedLink = {code: string; path: string; active: boolean; updatedAt: string};
+import type { SharedLink } from "./models.ts";
+export type { SharedLink } from "./models.ts";
 export function isInternalPath(path: unknown): path is string {
   return typeof path === "string" && path.length <= 240 && /^\/UDM\/(?:[a-zA-Z0-9_-]+\/)*$/.test(path) && !path.startsWith("/UDM/s/");
 }

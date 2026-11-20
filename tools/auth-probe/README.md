@@ -4,7 +4,8 @@ UDMの公開ページへ追加せず、ローカルの専用HTTPサーバーでF
 SDKは公式CDNの13.4.0（確認時の公式手順記載バージョン）を使用し、Analyticsを初期化しない。
 
 ```sh
-node tools/auth-probe/server.mjs
+pnpm run compile
+node .build/tools/auth-probe/server.js
 ```
 
 .env.localの認証用4項目を読み、localhostだけで待ち受ける。起動時にURLを表示する。
@@ -33,12 +34,12 @@ Windowsの同梱ランタイム等で.env.localを直接参照できない場合
 
 ## 自動確認
 
-browser-check.mjsのrunAuthBrowserChecks(chromium, baseUrl, launchOptions)へ、
+browser-check.tsのrunAuthBrowserChecks(chromium, baseUrl, launchOptions)へ、
 実行環境のPlaywrightと起動済みのローカルURLを渡す。
 実SDKの初期化だけを実設定で行い、ログイン操作の試験は偽SDKと匿名アカウントで行う。
 本番の共通パスワードや実Googleアカウントの操作は自動試験に使わない。
 
-Googleポップアップの実SDK確認はgoogle-popup-check.mjsのrunGooglePopupCheckで行う。
+Googleポップアップの実SDK確認はgoogle-popup-check.tsのrunGooglePopupCheckで行う。
 アカウントを入力せず、Googleの初期画面まで到達することとCSP違反がないことだけを確認する。
 サーバーのscript-srcにはwww.gstatic.comとapis.google.comを許可する。
 起動URLを維持したい場合は--port=<番号>を指定できる。

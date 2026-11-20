@@ -20,3 +20,11 @@ dist/
 gha-creds-*.json
 
 __pycache__/
+
+# Generated from the TypeScript sources and the shared API schema.
+.build/
+packages/contracts/generated/
+apps/bff/internal/adapter/http/api.gen.go
+apps/web/postcss.config.js
+apps/web/public/afetiria-extra/push-sw.js
+apps/bff/internal/adapter/http/routes.gen.go

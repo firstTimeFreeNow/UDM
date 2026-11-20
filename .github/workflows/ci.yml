@@ -14,15 +14,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.targets.outputs.web }}
+      bff: ${{ steps.targets.outputs.bff }}
+      apps_script: ${{ steps.targets.outputs.apps_script }}
+      tooling: ${{ steps.targets.outputs.tooling }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Select affected checks
+        id: targets
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.sha }}
+        run: node tools/ci/changes.ts
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Test and build
-        uses: ./.github/actions/test-and-build
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run compile
+      - run: pnpm run test:contracts
+      - run: pnpm run test:planner && pnpm run test:api-client
+      - run: pnpm run typecheck:workers
+      - run: pnpm --filter @udm/web typecheck
+      - run: pnpm --filter @udm/web build
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
@@ -32,3 +65,81 @@ jobs:
           NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
           NEXT_PUBLIC_UDM_API_URL: ${{ vars.NEXT_PUBLIC_UDM_API_URL }}
           NEXT_PUBLIC_AF_API_URL: ${{ vars.NEXT_PUBLIC_AF_API_URL }}
+
+  bff:
+    needs: changes
+    if: needs.changes.outputs.bff == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: apps/bff/go.mod
+          cache: false
+      - run: go -C apps/bff generate ./internal/adapter/http
+      - run: go -C apps/bff test -race ./...
+      - run: go -C apps/bff vet ./...
+      - run: go -C apps/bff build -o dist/bff ./cmd/bff
+      - run: bash -n tools/cloud-run/bootstrap.sh tools/cloud-run/deploy.sh
+      - run: python3 -m unittest discover -s tests/cloud-run
+      - run: docker build --file apps/bff/Dockerfile --tag udm-bff:check .
+
+  apps-script:
+    needs: changes
+    if: needs.changes.outputs.apps_script == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run compile
+      - run: pnpm run typecheck:apps-script
+      - run: pnpm run check:apps-script
+      - run: pnpm run test:afetiria
+
+  tooling:
+    needs: changes
+    if: needs.changes.outputs.tooling == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run compile
+      - run: pnpm run typecheck:tools
+      - run: pnpm run test:release
+      - run: node --test .build/tests/ci/*.test.js
+
+  # Retain the existing required check name, including when some jobs are skipped.
+  build:
+    if: always()
+    needs: [changes, web, bff, apps-script, tooling]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every selected check to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          if results['changes']['result'] != 'success':
+              raise SystemExit('Change detection failed')
+          for name, job in results.items():
+              if job['result'] not in ('success', 'skipped'):
+                  raise SystemExit(f'{name}: {job["result"]}')
+          PY

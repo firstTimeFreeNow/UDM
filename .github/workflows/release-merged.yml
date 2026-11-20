@@ -30,20 +30,42 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run compile
       - name: Validate merged release PR
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: node .github/scripts/release.mjs validate "$PR_NUMBER"
+        run: node .build/.github/scripts/release.js validate "$PR_NUMBER"
 
   release:
     needs: validate
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/deploy.yml
-    with:
-      release_sha: ${{ needs.validate.outputs.sha }}
-      release_version: ${{ needs.validate.outputs.version }}
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run compile
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+        run: node .build/.github/scripts/release.js publish "$RELEASE_VERSION" "$RELEASE_SHA"
+      - name: Dispatch deployment on published tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+        run: node .build/.github/scripts/release.js dispatch "$RELEASE_VERSION" "$RELEASE_SHA"
