@@ -52,6 +52,7 @@ function doPost(event) {
         case 'af.confirm': afConfirm_(request.payload, state); break;
       }
       SpreadsheetApp.flush();
+      afRefreshSelectedOption_();
       invalidateAnswerCache_();
       return afState_();
     });
@@ -220,10 +221,7 @@ function afConfirm_(payload, state) {
   afAssert_(slot && slot.judgment === '開催可能', 'INELIGIBLE');
   const summary = sheet_(AF.summary);
   const selected = new Date(slot.date + 'T' + slot.time + ':00+09:00');
-  const option = summary.getRange('J9:J62').getValues().map(function (row) { return row[0]; }).find(function (value) {
-    const candidate = afSelectedDate_(value);
-    return typeof value === 'string' && candidate instanceof Date && candidate.getTime() === selected.getTime();
-  });
+  const option = afSelectedOption_(selected);
   // The old numeric dropdown remains usable until the sheet is switched over.
   summary.getRange('B3').setValue(option || selected);
   afFormatSelectedDate_();

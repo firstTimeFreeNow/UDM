@@ -146,6 +146,22 @@ test('Web confirmation saves the current detailed option and displays only the d
   assert.equal(f.sheets.get('開催日程').grid[2][1], detailedOption);
   assert.equal(f.sheets.get('開催日程').formats.get('3:2').split(';')[3], '"2026/11/16(月) 21:30"');
 });
+test('answer changes refresh the selected option counts without changing the confirmation or notifying again', () => {
+  const f = fixture();
+  f.set('開催日程', 'B3', detailedOption);
+  const updated = detailedOption.replace('○8人・△0人', '○7人・△1人');
+  f.set('開催日程', 'J9', updated);
+  const before = f.context.afPushCurrent_().key;
+  const result = f.call('af.answers.save', {weekId:'2026-11-16',memberId:id(1),changes:[{slot:date,before:'○',answer:'△'}]});
+  assert.equal(result.ok, true);
+  assert.equal(f.sheets.get('開催日程').grid[2][1], updated);
+  assert.equal(result.data.state.confirmed, date);
+  assert.equal(f.context.afPushCurrent_().key, before);
+  assert.equal(f.sent.length, 0);
+  f.set('開催日程', 'B3', detailedOption);
+  f.context.onEdit({range:f.sheets.get('（管理者用）回答管理').getRange('C5')});
+  assert.equal(f.sheets.get('開催日程').grid[2][1], updated);
+});
 test('detailed selections retain the two-hour rollover deadline and archive a confirmed date', () => {
   const f = fixture();
   f.set('開催日程', 'B3', detailedOption);

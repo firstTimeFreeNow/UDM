@@ -82,6 +82,22 @@ function afSelectedDate_(value) {
     // Do not silently normalize an impossible date into another month.
     return !isNaN(selected.getTime()) && fmtDate_(selected) === day && fmtTime_(selected) === clock ? selected : value;
 }
+function afSelectedOption_(selected) {
+    return sheet_(AF.summary).getRange('J9:J62').getValues().map(function (row) { return row[0]; }).find(function (value) {
+        const candidate = afSelectedDate_(value);
+        return typeof value === 'string' && candidate instanceof Date && candidate.getTime() === selected.getTime();
+    });
+}
+/** Caller holds the script lock. Refresh counts without changing the selected date. */
+function afRefreshSelectedOption_() {
+    const cell = sheet_(AF.summary).getRange('B3');
+    const value = cell.getValue();
+    const selected = afSelectedDate_(value);
+    if (typeof value !== 'string' || !(selected instanceof Date)) return;
+    SpreadsheetApp.flush();
+    const option = afSelectedOption_(selected);
+    if (option && option !== value) cell.setValue(option);
+}
 /** Keep the dropdown label intact, while showing only the confirmed date in B3. */
 function afFormatSelectedDate_() {
     const cell = sheet_(AF.summary).getRange('B3');
@@ -175,6 +191,11 @@ function onEdit(event) {
     }
     if ([AF.admin, AF.members, AF.main].includes(name)) {
         invalidateAnswerCache_();
+        const lock = LockService.getScriptLock();
+        if (lock.tryLock(1000)) {
+            try { afRefreshSelectedOption_(); }
+            finally { lock.releaseLock(); }
+        }
     }
 }
 
@@ -497,6 +518,7 @@ function setAnswersBatchUnlocked_(payload) {
 
         if (changedIndexes.length > 0) {
             invalidateAnswerCache_();
+            afRefreshSelectedOption_();
         }
         const durationMs = Date.now() - startedAt;
         console.log('setAnswersBatch.serverMs=' + durationMs + ', changed=' + changedIndexes.length);
@@ -584,6 +606,7 @@ function checkScheduleRollover() {
     }
     try {
         afCheckPushSafe_();
+        afRefreshSelectedOption_();
         const settings = sheet_(AF.members);
         const summary = sheet_(AF.summary);
         const history = sheet_(AF.history);
