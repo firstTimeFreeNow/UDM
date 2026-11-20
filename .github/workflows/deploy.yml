@@ -1,4 +1,4 @@
-name: Validate and release to GitHub Pages
+name: Release to GitHub Pages
 
 on:
   workflow_call:
@@ -11,10 +11,6 @@ on:
         description: Version from RELEASE
         type: string
         required: true
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   release:
     types: [published]
 
@@ -22,8 +18,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ (github.event_name == 'release' || inputs.release_sha != '') && 'production' || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'release' && inputs.release_sha == '' }}
+  group: pages-production
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -34,45 +30,9 @@ jobs:
         with:
           ref: ${{ inputs.release_sha || github.sha }}
           persist-credentials: false
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: pnpm
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: apps/bff/go.mod
-          cache: false
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Test release automation
-        run: pnpm run test:release
-      - name: Test equipment planner
-        run: pnpm run test:planner
-      - name: Test scheduling API and Apps Script deployment
-        run: pnpm run test:afetiria
-      - name: Test Go BFF
-        run: pnpm run test:bff
-      - name: Test browser API client and answer drafts
-        run: pnpm run test:api-client
-      - name: Check types
-        run: pnpm run typecheck
-      - name: Build static site
-        env:
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
-          NEXT_PUBLIC_UDM_API_URL: ${{ vars.NEXT_PUBLIC_UDM_API_URL }}
-          NEXT_PUBLIC_AF_API_URL: ${{ vars.NEXT_PUBLIC_AF_API_URL }}
-        run: pnpm run build
+      - name: Test and build
+        uses: ./.github/actions/test-and-build
       - name: Upload Pages artifact
-        if: (github.event_name == 'release' && github.event.action == 'published') || inputs.release_sha != ''
         uses: actions/upload-pages-artifact@v5
         with:
           path: apps/web/out
