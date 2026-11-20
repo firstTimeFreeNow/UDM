@@ -5,7 +5,7 @@ import {LoadingProgress} from "./loading-progress";
 import { pushSetupMessage } from "@/lib/afetiria/push-registration";
 import { ApiError, callApi } from "@/lib/udm-api/client";
 import { deleteDevicePushToken, getDevicePushToken, isPushStatus, PUSH_TOKEN_KEY, type PushStatus } from "@/lib/afetiria/push";
-import styles from "./service.module.css";
+import styles from "./afetiria.module.css";
 export function NotificationSettings() {
   const [status, setStatus] = useState<PushStatus | null>(null);
   const [supported, setSupported] = useState<boolean|null>(null);
@@ -64,22 +64,101 @@ export function NotificationSettings() {
     } catch (error) {setError(error instanceof ApiError ? error.message : "通知を停止できませんでした。もう一度お試しください。");}
     finally {setBusy(false);}
   }
-  return <section className={styles.card} aria-labelledby="af-notifications"><h2 id="af-notifications">開催通知</h2>
-    <p>開催日時の確定・変更を、この端末に通知します。</p>
-    <p>受信する端末・ブラウザーごとに設定してください。ブラウザーで通知を許可していても、OS側の通知がオフだと表示されません。</p>
-    <p>Windowsでは「設定 → システム → 通知」で、通知全体と使用中のChrome／Edgeの通知をオンにしてください。「通知バナーを表示する」「通知センターに通知を表示する」もオンにし、「応答不可」はオフにしてください。</p>
-    <figure style={{margin:0}}>
-      <Image src="/UDM/afetiria-extra/windows-chrome-notifications.png" alt="Windowsの通知設定でGoogle Chromeの通知がオンになっている例" width={672} height={65} style={{maxWidth:"100%",height:"auto"}} />
-      <figcaption>Windowsの通知設定例（Google Chrome）</figcaption>
-    </figure>
-    <p>iPhone・iPad（iOS／iPadOS 16.4以降）は、Safariの共有メニューから「ホーム画面に追加」し、追加したアイコンから開いて設定してください。</p>
-    {(!configured || status && !status.ready) && <p>通知機能は準備中です。準備が完了すると、ここから有効にできます。</p>}
-    {supported===false && <p>このブラウザーでは通知を利用できません。対応ブラウザーで開いてください。iPhone・iPadはホーム画面への追加を先に行ってください。</p>}
-    {denied && <p>通知がブロックされています。ブラウザーのサイト設定から通知を許可してください。</p>}
-    {status?.deliveryIssue && <p role="alert">通知の配信に問題が発生しています。管理者に確認してください。</p>}
-    {status?.enabled ? <><p>このブラウザーの通知：有効</p><button type="button" disabled={busy} onClick={() => void disable()}>通知を停止</button></> :
-      <button type="button" disabled={busy || !supported || denied || !configured || !status?.ready} onClick={() => void enable()}>{busy ? "通知設定を確認中…" : "通知を有効にする"}</button>}
-    {busy && <LoadingProgress label="通知設定を確認中…"/>}
-    {notice && <p role="status">{notice}</p>}{error && <p role="alert" className={styles.error}>{error}</p>}
-  </section>;
+  return (
+    <section className={styles.card} aria-labelledby="af-notifications">
+      <h2 id="af-notifications">開催通知</h2>
+      <p>開催日時が決定・変更されたときに通知します。</p>
+      <div className={styles.notificationRow}>
+        <div>
+          <strong>
+            <span
+              className={`${styles.statusDot} ${status?.enabled ? styles.enabled : ""}`}
+              aria-hidden="true"
+            />
+            このブラウザーの通知：
+            {busy && !status ? "確認中…" : status?.enabled ? "有効" : "無効"}
+          </strong>
+          <p>
+            「通知を有効にする」を押し、ブラウザーに表示される通知の許可を選んでください。端末・ブラウザーごとに設定が必要です。
+          </p>
+        </div>
+        {status?.enabled ? (
+          <button type="button" disabled={busy} onClick={() => void disable()}>
+            通知を停止
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={
+              busy || !supported || denied || !configured || !status?.ready
+            }
+            onClick={() => void enable()}
+          >
+            {busy ? "確認中…" : "通知を有効にする"}
+          </button>
+        )}
+      </div>
+      <details className={styles.notificationDetails}>
+        <summary>通知が届かない場合・端末別の設定</summary>
+        <div className={styles.notificationHelp}>
+          <p>
+            ブラウザーで通知を許可していても、OS側の通知がオフだと表示されません。
+          </p>
+          <p className={styles.platformLabel}>Windowsの設定</p>
+          <ol>
+            <li>
+              Windowsの「設定 → システム → 通知」を開き、通知をオンにします。
+            </li>
+            <li>
+              アプリの一覧で、使用している「Google Chrome」または「Microsoft
+              Edge」の通知をオンにします。
+            </li>
+            <li>
+              そのブラウザーの通知設定を開き、「通知バナーを表示する」と「通知センターに通知を表示する」をオンにします。
+            </li>
+            <li>「応答不可」はオフにします。</li>
+          </ol>
+          <figure className={styles.notificationExample}>
+            <Image
+              src="/UDM/afetiria-extra/windows-chrome-notifications.png"
+              alt="Windowsの通知設定。Google Chromeの通知スイッチがオンになっている例"
+              width={672}
+              height={65}
+            />
+            <figcaption>Windowsの通知設定例（Google Chrome）</figcaption>
+          </figure>
+          <p className={styles.platformLabel}>iPhone・iPadの設定</p>
+          <p>
+            iOS／iPadOS
+            16.4以降では、Safariの共有メニューから「ホーム画面に追加」してください。追加したアイコンからWebアプリを開き、「通知を有効にする」を押してください。
+          </p>
+        </div>
+      </details>
+      {(!configured || (status && !status.ready)) && (
+        <p>通知機能は準備中です。準備が完了すると、ここから有効にできます。</p>
+      )}
+      {supported === false && (
+        <p>
+          このブラウザーでは通知を利用できません。対応ブラウザーで開いてください。iPhone・iPadはホーム画面への追加を先に行ってください。
+        </p>
+      )}
+      {denied && (
+        <p>
+          通知がブロックされています。ブラウザーのサイト設定から通知を許可してください。
+        </p>
+      )}
+      {status?.deliveryIssue && (
+        <p role="alert" className={styles.error}>
+          通知の配信に問題が発生しています。管理者に確認してください。
+        </p>
+      )}
+      {busy && <LoadingProgress label="通知設定を確認中…" />}
+      {notice && <p role="status">{notice}</p>}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
+    </section>
+  );
 }

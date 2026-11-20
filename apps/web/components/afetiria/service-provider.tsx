@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { DataProvider } from "./data-provider";
 import { LoadingProgress } from "./loading-progress";
-import { ShareButton } from "@/components/shared-links/share-button";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, type Auth, type User } from "firebase/auth";
 import { getServiceAuth } from "@/lib/afetiria/firebase";
 import { callApi, ApiError } from "@/lib/udm-api/client";
 import type { Role } from "@udm/contracts/afetiria";
-import styles from "./service.module.css";
+import afetiriaStyles from "./afetiria.module.css";
+import sharedStyles from "./service.module.css";
 
 const Session = createContext<{ role: Role; user: User } | null>(null);
 export function useSession() {
@@ -32,6 +32,7 @@ function authMessage(error: unknown) {
   return messages[code || ""] || "ログインを完了できませんでした。接続と設定を確認してください。";
 }
 export function ServiceProvider({ children, service = "afetiria" }: { children: ReactNode; service?: "afetiria" | "links" }) {
+  const styles = service === "links" ? sharedStyles : afetiriaStyles;
   const pathname = usePathname();
   const [auth, setAuth] = useState<Auth | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -109,15 +110,14 @@ export function ServiceProvider({ children, service = "afetiria" }: { children: 
   ];
   return <div className={styles.shell}>
     <header className={styles.header}>
-      <div><span className={styles.eyebrow}>UDM / TALESWEAVER</span><Link className={styles.title} href={service === "links" ? "/admin/links/" : "/afetiria-extra/"}>{service === "links" ? "共有URLの管理" : "アフェティリアハード追加便"}</Link></div>
-      {user && <button type="button" disabled={busy} onClick={logout}>ログアウト</button>}
+      <div><Link className={styles.title} href={service === "links" ? "/admin/links/" : "/afetiria-extra/"}>{service === "links" ? "共有URLの管理" : "アフェティリアハード追加便"}</Link></div>
+      {user && <button className={afetiriaStyles.logout} type="button" disabled={busy} onClick={logout}>ログアウト</button>}
     </header>
     {role && <nav className={styles.navigation} aria-label="アフェティリアのメニュー">{navigation.map(([href, label]) =>
       <Link key={href} href={href} aria-current={pathname.replace(/\/$/, "") === href.replace(/\/$/, "") ? "page" : undefined}>{label}</Link>)}</nav>}
     <main className={styles.main}>
       {loading ? <LoadingProgress label="ログインを確認中…"/> : user && role ?
         <DataProvider key={`${user.uid}:${role}:${service}`}><Session.Provider value={{user, role}}>
-          {service === "afetiria" && !pathname.includes("/admin") && <ShareButton key={pathname} path={pathname.startsWith("/UDM/") ? pathname : `/UDM${pathname}`} getToken={() => user.getIdToken()}/>}
           {children}</Session.Provider></DataProvider> :
         <section className={styles.login}>
           <h1>{service === "links" ? "ログイン" : "参加者ログイン"}</h1>

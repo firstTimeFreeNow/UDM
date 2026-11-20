@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ApiError, callApi } from "@/lib/udm-api/client";
 import { isInternalPath } from "@udm/contracts/shared-links";
-import styles from "@/components/afetiria/service.module.css";
+import styles from "@/components/afetiria/afetiria.module.css";
 
 export function ShareButton({path, getToken}: {path: string; getToken: () => Promise<string>}) {
   const [busy, setBusy] = useState(false);

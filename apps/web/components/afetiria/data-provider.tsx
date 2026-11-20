@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { SWRConfig } from "swr";
+import styles from "./afetiria.module.css";
 import { createIdleSync } from "@/lib/afetiria/idle-sync";
 const SyncPaused = createContext<() => boolean>(() => false);
 export const useSyncPaused = () => useContext(SyncPaused);
@@ -36,15 +37,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
       idle.activity();
       check();
     };
-    const events = ["pointerdown", "pointermove", "keydown", "scroll", "touchstart"];
+    const events = [
+      "pointerdown",
+      "pointermove",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
     events.forEach((name) =>
-      document.addEventListener(name, activity, { passive: true, capture: true }),
+      document.addEventListener(name, activity, {
+        passive: true,
+        capture: true,
+      }),
     );
     document.addEventListener("visibilitychange", check);
     check();
     return () => {
       clearTimeout(timer);
-      events.forEach((name) => document.removeEventListener(name, activity, true));
+      events.forEach((name) =>
+        document.removeEventListener(name, activity, true),
+      );
       document.removeEventListener("visibilitychange", check);
     };
   }, [idle, isPaused]);
@@ -65,7 +77,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }}
       >
         {stopped && (
-          <p role="status">
+          <p className={styles.notice} role="status">
             長時間操作がないため同期を停止しています。再開するには再読み込みしてください
           </p>
         )}

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ShareButton } from "@/components/shared-links/share-button";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 import { LoadingProgress } from "./loading-progress";
@@ -14,6 +16,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import {
   ApiError,
@@ -32,7 +35,7 @@ import {
   type History,
 } from "@udm/contracts/afetiria";
 import { useSession } from "./service-provider";
-import styles from "./service.module.css";
+import styles from "./afetiria.module.css";
 
 const SELECTED_MEMBER = "udm:afetiria:selected-member";
 const dateLabel = (date: string) =>
@@ -112,7 +115,9 @@ function useSchedule(view: Exclude<View, "history">, memberId: string | null) {
     {
       keepPreviousData: true,
       refreshInterval: (result) =>
-        isSyncPaused() ? 0 : Math.max(1000, Math.min(300000, remainingTtl(result))),
+        isSyncPaused()
+          ? 0
+          : Math.max(1000, Math.min(300000, remainingTtl(result))),
     },
   );
   const load = useCallback(
@@ -202,10 +207,70 @@ function useSchedule(view: Exclude<View, "history">, memberId: string | null) {
     refreshing: isValidating,
     error: writeError || (error ? message(error) : ""),
     uncertain,
-    loadedAt: data ? new Date(data.meta?.sourceFetchedAt || Date.now()) : null,
+    loadedAt: data?.meta?.sourceFetchedAt
+      ? new Date(data.meta.sourceFetchedAt)
+      : null,
     load,
     mutate,
   };
+}
+function PageToolbar({
+  children,
+  busy,
+  refreshing,
+  onRefresh,
+  share = true,
+}: {
+  children?: ReactNode;
+  busy: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
+  share?: boolean;
+}) {
+  const pathname = usePathname();
+  const { user } = useSession();
+  return (
+    <div className={styles.toolbar}>
+      <div className={styles.weekLabel}>{children}</div>
+      <button
+        className={styles.refreshButton}
+        type="button"
+        disabled={busy}
+        aria-busy={refreshing}
+        onClick={onRefresh}
+      >
+        {refreshing ? "更新中…" : "更新"}
+      </button>
+      {share && (
+        <ShareButton
+          key={pathname}
+          path={pathname.startsWith("/UDM/") ? pathname : `/UDM${pathname}`}
+          getToken={() => user.getIdToken()}
+        />
+      )}
+      <div className={styles.toolbarProgress}>
+        {refreshing && <LoadingProgress label="予定を更新中…" compact />}
+      </div>
+    </div>
+  );
+}
+function CheckedAt({ value, label }: { value: Date | null; label: string }) {
+  if (!value || !Number.isFinite(value.getTime())) return null;
+  return (
+    <div className={styles.checkedAt}>
+      <span>{label}</span>
+      <time dateTime={value.toISOString()}>
+        {new Intl.DateTimeFormat("ja-JP", {
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+          timeZone: "Asia/Tokyo",
+        }).format(value)}
+      </time>
+    </div>
+  );
 }
 type View = "schedule" | "answer" | "admin" | "history";
 export function SchedulePage({ view }: { view: View }) {
@@ -227,6 +292,17 @@ function CurrentWeek({ view }: { view: Exclude<View, "history"> }) {
   const schedule = useSchedule(view, memberId);
   const { role } = useSession();
   const { state, busy, error, loadedAt, load } = schedule;
+  const isSyncPaused = useSyncPaused();
+  const [manualRefresh, setManualRefresh] = useState(false);
+  async function refreshPage() {
+    if (manualRefresh || isSyncPaused()) return;
+    setManualRefresh(true);
+    try {
+      await load();
+    } finally {
+      setManualRefresh(false);
+    }
+  }
   if (view === "admin" && role !== "admin")
     return (
       <>
@@ -236,43 +312,24 @@ function CurrentWeek({ view }: { view: Exclude<View, "history"> }) {
     );
   return (
     <>
-      <div className={styles.toolbar}>
-        <div>
-          <h1>
-            {view === "answer"
-              ? "参加回答"
-              : view === "admin"
-                ? "日程とメンバーの管理"
-                : "開催状況"}
-          </h1>
-          <p>{state ? `${dateLabel(state.weekId)}からの予定` : ""}</p>
-        </div>
-        <div>
-          <button type="button" disabled={busy} onClick={() => void load()}>
-            更新
-          </button>
-          {loadedAt && (
-            <div className={styles.muted}>
-              更新{" "}
-              {loadedAt.toLocaleTimeString("ja-JP", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-      {(schedule.refreshing || schedule.saving || (!state && !error)) && (
-        <LoadingProgress
-          label={
-            schedule.saving
-              ? "保存中…"
-              : state
-                ? "更新中…"
-                : "予定を読み込み中…"
-          }
-          initial={!state}
-        />
+      <h1 className={styles.visuallyHidden}>
+        {view === "answer"
+          ? "参加回答"
+          : view === "admin"
+            ? "日程とメンバーの管理"
+            : "開催状況"}
+      </h1>
+      <PageToolbar
+        busy={busy || manualRefresh || isSyncPaused()}
+        refreshing={manualRefresh}
+        onRefresh={() => void refreshPage()}
+        share={view !== "admin"}
+      >
+        {state &&
+          `${dateLabel(state.weekId)}〜${dateLabel(weekDays(state.weekId)[6])}`}
+      </PageToolbar>
+      {!state && !error && (
+        <LoadingProgress label="予定を読み込み中…" initial />
       )}
       {error && (
         <p role="alert" className={`${styles.notice} ${styles.error}`}>
@@ -296,6 +353,16 @@ function CurrentWeek({ view }: { view: Exclude<View, "history"> }) {
             />
           )}
           {view === "admin" && <Admin {...schedule} state={state} />}
+          <CheckedAt
+            value={loadedAt}
+            label={
+              view === "answer"
+                ? "予定・回答の確認時刻"
+                : view === "admin"
+                  ? "日程・メンバーの確認時刻"
+                  : "開催状況の確認時刻"
+            }
+          />
         </>
       )}
     </>
@@ -309,8 +376,10 @@ function Confirmation({ state }: { state: Schedule }) {
   );
   return (
     <section className={styles.notice}>
-      <h2>開催確定：{slotLabel(state.confirmed)}</h2>
-      <p>確定後も参加回答を変更できます。</p>
+      <div className={styles.confirmation}>
+        <span>開催確定</span>
+        <strong>{slotLabel(state.confirmed)}</strong>
+      </div>
       {!eligible && (
         <p role="alert" className={styles.error}>
           回答の変更により開催条件を満たしていません。管理者が確認してください。
@@ -344,8 +413,8 @@ function Overview({ state }: { state: Schedule }) {
           <p>開催できる候補はありません。</p>
         )}
       </section>
-      <p>
-        <Link href="/afetiria-extra/answer/">参加できる日時を回答する</Link>
+      <p className={styles.answerLink}>
+        <Link href="/afetiria-extra/answer/">参加できる日時を回答する →</Link>
       </p>
     </>
   );
@@ -463,211 +532,331 @@ function AnswerForm({
       days[Math.max(0, Math.min(days.length - 1, dayIndex + delta))],
     );
   }
+  const dayTabsRef = useRef<HTMLDivElement>(null);
+  const answerDaysRef = useRef<HTMLDivElement>(null);
+  const previousDay = useRef(days[dayIndex]);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  useEffect(() => {
+    const tabs = dayTabsRef.current;
+    if (!tabs) return;
+    let active = true;
+    const measure = () => {
+      if (!active) return;
+      const button = tabs.querySelector<HTMLButtonElement>(
+        '[aria-pressed="true"]',
+      );
+      if (button?.offsetWidth)
+        setIndicator((previous) =>
+          previous.left === button.offsetLeft &&
+          previous.width === button.offsetWidth
+            ? previous
+            : { left: button.offsetLeft, width: button.offsetWidth },
+        );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(tabs);
+    void document.fonts.ready.then(measure);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [display, dayIndex, state.weekId, member?.id]);
+  useEffect(() => {
+    const oldDay = previousDay.current;
+    previousDay.current = days[dayIndex];
+    const element = answerDaysRef.current;
+    if (
+      !element ||
+      oldDay === days[dayIndex] ||
+      display !== "day" ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    const direction = days[dayIndex] > oldDay ? 1 : -1;
+    const animation = element.animate(
+      [
+        { opacity: 0.75, transform: `translateX(${direction * 6}px)` },
+        { opacity: 1, transform: "translateX(0)" },
+      ],
+      { duration: 140, easing: "cubic-bezier(.2,.7,.2,1)" },
+    );
+    return () => animation.cancel();
+  }, [days[dayIndex], display]);
   return (
     <form onSubmit={save}>
-      <div className={styles.memberSelect}>
-        <label htmlFor="af-member">回答するメンバー</label>
-        <select
-          id="af-member"
-          value={member ? selected : ""}
-          disabled={busy}
-          onChange={(event) => selectMember(event.target.value)}
-        >
-          <option value="">名前を選択してください</option>
-          {state.members.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.name}
-            </option>
-          ))}
-        </select>
-        <p className={styles.muted}>
-          選んだ名前はこのブラウザーに保存されます。
-        </p>
-      </div>
-      {changes.length > 0 && (!member || weekChanged) && (
-        <div className={styles.notice} role="alert">
-          <p>
-            対象週またはメンバーが変更されました。未保存の回答は保存できません。
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setDraft({});
-              setDraftWeek(state.weekId);
-            }}
-          >
-            未保存の回答を破棄
-          </button>
-        </div>
-      )}
-      {conflicts.length > 0 && !weekChanged && (
-        <p role="alert" className={styles.error}>
-          同じ日時の回答が更新されています。変更を破棄して最新の回答を確認してください。
-        </p>
-      )}
-      {member && (
-        <>
-          <p>○：参加可能　△：未定　×：参加不可　未回答：選択を解除</p>
-          <div className={styles.answerToolbar}>
-            <div
-              className={styles.viewToggle}
-              role="group"
-              aria-label="回答画面の表示"
-            >
-              <button
-                type="button"
-                aria-pressed={display === "day"}
-                onClick={() => setDisplay("day")}
+      <div className={styles.answerPanel}>
+        <div className={styles.answerPanelHeader}>
+          <div className={styles.memberToolbar}>
+            <div className={styles.memberSelect}>
+              <label htmlFor="af-member">回答するメンバー</label>
+              <select
+                id="af-member"
+                value={member ? selected : ""}
+                disabled={busy}
+                onChange={(event) => selectMember(event.target.value)}
               >
-                1日ずつ
-              </button>
-              <button
-                type="button"
-                aria-pressed={display === "all"}
-                onClick={() => setDisplay("all")}
-              >
-                一覧
-              </button>
+                <option value="">名前を選択してください</option>
+                {state.members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            {display === "day" && (
-              <div className={styles.dayNavigation}>
+            {member && (
+              <div
+                className={styles.viewToggle}
+                role="group"
+                aria-label="回答画面の表示"
+              >
                 <button
                   type="button"
-                  disabled={dayIndex === 0}
-                  onClick={() => moveDay(-1)}
+                  aria-pressed={display === "day"}
+                  onClick={() => setDisplay("day")}
                 >
-                  前日
+                  1日ずつ
                 </button>
-                <span className={styles.dayPosition}>
-                  {dayIndex + 1} / {days.length}日
-                </span>
-                <select
-                  className={styles.mobileDaySelect}
-                  aria-label="回答する日付"
-                  value={days[dayIndex]}
-                  onChange={(event) => setActiveDay(event.target.value)}
-                >
-                  {days.map((day) => (
-                    <option key={day} value={day}>
-                      {dateLabel(day)}
-                    </option>
-                  ))}
-                </select>
                 <button
                   type="button"
-                  disabled={dayIndex === days.length - 1}
-                  onClick={() => moveDay(1)}
+                  aria-pressed={display === "all"}
+                  onClick={() => setDisplay("all")}
                 >
-                  翌日
+                  一覧
                 </button>
               </div>
             )}
           </div>
-          {display === "day" && (
-            <div
-              className={styles.dayTabs}
-              role="group"
-              aria-label="回答する日付"
-            >
-              {days.map((day) => (
-                <button
-                  type="button"
-                  key={day}
-                  aria-pressed={day === days[dayIndex]}
-                  onClick={() => setActiveDay(day)}
-                >
-                  {dateLabel(day)}
-                </button>
-              ))}
+          {changes.length > 0 && (!member || weekChanged) && (
+            <div className={styles.notice} role="alert">
+              <p>
+                対象週またはメンバーが変更されました。未保存の回答は保存できません。
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft({});
+                  setDraftWeek(state.weekId);
+                }}
+              >
+                未保存の回答を破棄
+              </button>
             </div>
           )}
-          {shownDays.map((day) => (
-            <section
-              key={day}
-              className={styles.day}
-              onTouchStart={(event) => {
-                touch.current = {
-                  x: event.changedTouches[0].clientX,
-                  y: event.changedTouches[0].clientY,
-                };
-              }}
-              onTouchEnd={(event) => {
-                const start = touch.current;
-                touch.current = null;
-                if (display !== "day" || !start) return;
-                const dx = event.changedTouches[0].clientX - start.x;
-                const dy = event.changedTouches[0].clientY - start.y;
-                if (Math.abs(dx) > 60 && Math.abs(dy) < 40)
-                  moveDay(dx < 0 ? 1 : -1);
-              }}
-            >
-              <h2>{dateLabel(day)}</h2>
-              {!state.slots.some((slot) => slot.date === day) && (
-                <p className={styles.emptyDay}>この日の候補はありません。</p>
-              )}
-              {state.slots
-                .filter((slot) => slot.date === day)
-                .sort((a, b) => a.time.localeCompare(b.time))
-                .map((slot) => {
-                  const answer =
-                    draft[slot.key]?.answer ??
-                    state.answers[selected]?.[slot.key] ??
-                    "";
-                  return (
-                    <div
-                      key={slot.key}
-                      className={`${styles.answerRow} ${draft[slot.key] ? styles.dirty : ""}`}
+          {conflicts.length > 0 && !weekChanged && (
+            <p role="alert" className={styles.error}>
+              同じ日時の回答が更新されています。変更を破棄して最新の回答を確認してください。
+            </p>
+          )}
+          {member && (
+            <>
+              <div className={styles.answerToolbar}>
+                <div className={styles.legend}>
+                  <span>
+                    <b>○</b>参加可能
+                  </span>
+                  <span>
+                    <b>△</b>未定
+                  </span>
+                  <span>
+                    <b>×</b>参加不可
+                  </span>
+                </div>
+                {display === "day" && (
+                  <div className={styles.dayNavigation}>
+                    <button
+                      type="button"
+                      disabled={dayIndex === 0}
+                      onClick={() => moveDay(-1)}
                     >
-                      <div>
-                        <strong>{slot.time}</strong>
-                        <small>
-                          ○ {slot.count}人 · {slot.judgment}
-                          {state.confirmed === slot.key ? " · 開催確定" : ""}
-                        </small>
-                      </div>
+                      前日
+                    </button>
+                    <span className={styles.dayPosition}>
+                      {dayIndex + 1} / {days.length}日
+                    </span>
+                    <select
+                      className={styles.mobileDaySelect}
+                      aria-label="回答する日付"
+                      value={days[dayIndex]}
+                      onChange={(event) => setActiveDay(event.target.value)}
+                    >
+                      {days.map((day) => (
+                        <option key={day} value={day}>
+                          {dateLabel(day)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={dayIndex === days.length - 1}
+                      onClick={() => moveDay(1)}
+                    >
+                      翌日
+                    </button>
+                  </div>
+                )}
+              </div>
+              {display === "day" && (
+                <div
+                  ref={dayTabsRef}
+                  className={styles.dayTabs}
+                  role="group"
+                  aria-label="回答する日付"
+                >
+                  <span
+                    className={styles.dayIndicator}
+                    aria-hidden="true"
+                    style={{
+                      width: indicator.width,
+                      transform: `translateX(${indicator.left}px)`,
+                    }}
+                  />
+                  {days.map((day) => (
+                    <button
+                      type="button"
+                      key={day}
+                      aria-label={dateLabel(day)}
+                      aria-pressed={day === days[dayIndex]}
+                      onClick={() => setActiveDay(day)}
+                    >
+                      <span className={styles.dateNumber}>
+                        {Number(day.slice(5, 7))}/{Number(day.slice(8))}
+                      </span>
+                      <span className={styles.weekday}>
+                        {new Intl.DateTimeFormat("ja-JP", {
+                          weekday: "short",
+                          timeZone: "Asia/Tokyo",
+                        }).format(new Date(day + "T00:00:00+09:00"))}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        {member && (
+          <div ref={answerDaysRef}>
+            {shownDays.map((day) => (
+              <section
+                key={day}
+                className={styles.day}
+                aria-label={dateLabel(day)}
+                onTouchStart={(event) => {
+                  if (
+                    event.target instanceof Element &&
+                    event.target.closest("button,input,select")
+                  ) {
+                    touch.current = null;
+                    return;
+                  }
+                  touch.current = {
+                    x: event.changedTouches[0].clientX,
+                    y: event.changedTouches[0].clientY,
+                  };
+                }}
+                onTouchEnd={(event) => {
+                  const start = touch.current;
+                  touch.current = null;
+                  if (display !== "day" || !start) return;
+                  const dx = event.changedTouches[0].clientX - start.x,
+                    dy = event.changedTouches[0].clientY - start.y;
+                  if (Math.abs(dx) > 60 && Math.abs(dy) < 40)
+                    moveDay(dx < 0 ? 1 : -1);
+                }}
+              >
+                <h2>{dateLabel(day)}</h2>
+                {!state.slots.some((slot) => slot.date === day) && (
+                  <p className={styles.emptyDay}>この日の候補はありません。</p>
+                )}
+                {state.slots
+                  .filter((slot) => slot.date === day)
+                  .sort((a, b) => a.time.localeCompare(b.time))
+                  .map((slot) => {
+                    const answer =
+                      draft[slot.key]?.answer ??
+                      state.answers[selected]?.[slot.key] ??
+                      "";
+                    return (
                       <div
-                        className={styles.choices}
-                        role="group"
-                        aria-label={`${dateLabel(day)} ${slot.time}の回答`}
+                        key={slot.key}
+                        className={`${styles.answerRow} ${draft[slot.key] ? styles.dirty : ""}`}
                       >
-                        {answers.map((value) => (
-                          <button
-                            type="button"
-                            key={value || "empty"}
-                            disabled={busy || weekChanged}
-                            aria-pressed={answer === value}
-                            onClick={() => change(slot.key, value)}
-                          >
-                            {value || "未回答"}
-                          </button>
-                        ))}
+                        <div className={styles.rowCaption}>
+                          <strong className={styles.answerTime}>
+                            {slot.time}
+                          </strong>
+                          <small>
+                            ○ {slot.count}人 · {slot.judgment}
+                            {state.confirmed === slot.key ? " · 開催確定" : ""}
+                          </small>
+                        </div>
+                        <div
+                          className={styles.choices}
+                          role="group"
+                          aria-label={`${dateLabel(day)} ${slot.time}の回答`}
+                        >
+                          {answers.map((value) => (
+                            <button
+                              type="button"
+                              key={value || "empty"}
+                              className={value ? undefined : styles.emptyChoice}
+                              disabled={busy || weekChanged}
+                              aria-label={
+                                {
+                                  "○": "参加可能",
+                                  "△": "未定",
+                                  "×": "参加不可",
+                                  "": "未回答",
+                                }[value]
+                              }
+                              aria-pressed={answer === value}
+                              onClick={() => change(slot.key, value)}
+                            >
+                              {value || "未回答"}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </section>
-          ))}
+                    );
+                  })}
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
+      {member && (
+        <>
           {display === "day" && dayIndex < days.length - 1 && (
             <div className={styles.nextDay}>
               <button type="button" onClick={() => moveDay(1)}>
-                翌日の回答へ
+                翌日の回答へ →
               </button>
             </div>
           )}
           <div className={styles.saveBar}>
-            <span role="status">
-              {notice ||
-                (changes.length
-                  ? `未保存 ${changes.length}件`
-                  : "未保存の変更はありません")}
+            <span
+              role="status"
+              className={`${styles.saveStatus} ${changes.length ? styles.dirtyText : ""}`}
+            >
+              {saving
+                ? "回答を保存しています…"
+                : notice ||
+                  (changes.length
+                    ? `未保存 ${changes.length}件`
+                    : "未保存の変更はありません")}
             </span>
-            <div className={styles.inline}>
+            <div className={styles.saveActions}>
               {changes.length > 0 && (
                 <button
+                  className={styles.discard}
                   type="button"
                   disabled={busy}
                   onClick={() => {
-                    if (confirm("未保存の回答を破棄しますか？")) setDraft({});
+                    if (confirm("未保存の回答を破棄しますか？")) {
+                      setDraft({});
+                      setNotice("");
+                    }
                   }}
                 >
                   変更を破棄
@@ -676,6 +865,7 @@ function AnswerForm({
               <button
                 className={styles.primary}
                 type="submit"
+                aria-busy={saving}
                 disabled={
                   busy ||
                   !changes.length ||
@@ -906,15 +1096,38 @@ function HistoryPage() {
       revalidateFirstPage: false,
       revalidateAll: true,
       refreshInterval: (pages) =>
-        isSyncPaused() ? 0 : Math.max(1000, Math.min(300000, remainingTtl(pages?.[0]))),
+        isSyncPaused()
+          ? 0
+          : Math.max(1000, Math.min(300000, remainingTtl(pages?.[0]))),
     },
   );
   const items = data?.flatMap((page) => page.data.items) || [];
   const next = data?.at(-1)?.data.nextOffset;
+  const [manualRefresh, setManualRefresh] = useState(false);
+  async function refreshPage() {
+    if (manualRefresh || isSyncPaused()) return;
+    setManualRefresh(true);
+    try {
+      await refreshHistory();
+    } catch {
+      /* SWR exposes the error. */
+    } finally {
+      setManualRefresh(false);
+    }
+  }
+  const checkedAt =
+    data?.length && data.every((page) => page.meta?.sourceFetchedAt)
+      ? new Date(Math.min(...data.map((page) => page.meta!.sourceFetchedAt)))
+      : null;
   return (
     <>
-      <h1>開催履歴</h1>
-      {isValidating && (
+      <h1 className={styles.visuallyHidden}>開催履歴</h1>
+      <PageToolbar
+        busy={isValidating || isSyncPaused()}
+        refreshing={manualRefresh}
+        onRefresh={() => void refreshPage()}
+      />
+      {isValidating && !data && (
         <LoadingProgress label="履歴を読み込み中…" initial={!data} />
       )}
       {error && (
@@ -922,19 +1135,26 @@ function HistoryPage() {
           {message(error)}
         </p>
       )}
-      <ul className={styles.list}>
-        {items.map((item) => (
-          <li key={item.weekId}>
-            <div>
-              <strong>{dateLabel(item.weekId)}からの週</strong>
-              <div>
-                {item.confirmed ? slotLabel(item.confirmed) : "開催日時なし"}
-              </div>
-            </div>
-            <span>{item.status}</span>
-          </li>
-        ))}
-      </ul>
+      <div className={styles.historyContainer}>
+        <table className={styles.historyTable}>
+          <thead>
+            <tr>
+              <th scope="col">対象週</th>
+              <th scope="col">開催日時</th>
+              <th scope="col">結果</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.weekId}>
+                <td>{dateLabel(item.weekId)}〜</td>
+                <td>{item.confirmed ? slotLabel(item.confirmed) : "—"}</td>
+                <td>{item.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {!isValidating && !error && !items.length && (
         <p>開催履歴はありません。</p>
       )}
@@ -948,10 +1168,11 @@ function HistoryPage() {
         </button>
       )}
       {error && (
-        <button type="button" onClick={() => void refreshHistory()}>
+        <button type="button" onClick={() => void refreshPage()}>
           再読み込み
         </button>
       )}
+      <CheckedAt value={checkedAt} label="履歴の確認時刻" />
     </>
   );
 }

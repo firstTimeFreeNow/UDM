@@ -4,7 +4,7 @@ import { ApiError, callApi } from "@/lib/udm-api/client";
 import { isPushTestResult, type PushTestResult } from "@/lib/afetiria/push";
 import { useSession } from "./service-provider";
 import {LoadingProgress} from "./loading-progress";
-import styles from "./service.module.css";
+import styles from "./afetiria.module.css";
 
 export function PushTestForm() {
   const {user,role}=useSession();
