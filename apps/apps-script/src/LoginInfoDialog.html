@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px; color: #233244; background: #fff; font: 14px Arial, 'Noto Sans JP', sans-serif; }
+    p { margin: 0 0 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    label { display: block; margin: 14px 0 6px; font-weight: bold; }
+    input { width: 100%; padding: 10px 12px; border: 1px solid #adbfce; border-radius: 7px; font: inherit; }
+    button { margin-top: 16px; padding: 10px 16px; border: 1px solid #adbfce; border-radius: 7px; background: #fff; color: #233244; font: inherit; cursor: pointer; }
+    button[type=submit] { background: #215780; border-color: #215780; color: #fff; }
+    button:disabled { opacity: .5; cursor: default; }
+    input:focus-visible, button:focus-visible { outline: 3px solid #68a7d3; outline-offset: 2px; }
+    #notice { min-height: 24px; margin-top: 12px; }
+    .error { color: #b42318; }
+  </style>
+</head>
+<body>
+  <form id="question-form" hidden>
+    <p id="question"></p>
+    <label for="answer">答え</label>
+    <input id="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    <button id="submit" type="submit">ログイン情報を表示</button>
+  </form>
+  <section id="credentials" hidden aria-label="ログイン情報">
+    <label for="email">メールアドレス</label>
+    <input id="email" type="text" readonly autocomplete="off">
+    <label for="password">パスワード</label>
+    <input id="password" type="text" readonly autocomplete="off">
+    <button id="close" type="button">閉じる</button>
+  </section>
+  <p id="notice" role="status">質問を読み込み中…</p>
+  <script>
+    const el = id => document.getElementById(id);
+    let busy = false;
+    function notice(text, error = false) {
+      el('notice').textContent = text;
+      el('notice').className = error ? 'error' : '';
+    }
+    el('question-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (busy || el('question-form').hidden || !el('answer').value) return;
+      busy = true;
+      el('submit').disabled = true;
+      el('answer').disabled = true;
+      notice('確認中…');
+      google.script.run.withSuccessHandler(result => {
+        // Values are assigned as text; never evaluate them as HTML.
+        el('email').value = result.email;
+        el('password').value = result.password;
+        el('answer').value = '';
+        el('question-form').hidden = true;
+        el('credentials').hidden = false;
+        notice('');
+        el('email').focus();
+      }).withFailureHandler(() => {
+        busy = false;
+        el('submit').disabled = false;
+        el('answer').disabled = false;
+        notice('確認できませんでした。答えを確認して再度お試しください。', true);
+        el('answer').focus();
+      }).getLoginInfoWithAnswer(el('answer').value);
+    });
+    el('close').addEventListener('click', () => google.script.host.close());
+    google.script.run.withSuccessHandler(result => {
+      el('question').textContent = result.question;
+      el('question-form').hidden = false;
+      notice('');
+      el('answer').focus();
+    }).withFailureHandler(() => {
+      notice('質問を読み込めませんでした。管理者に設定を確認してください。', true);
+    }).getLoginInfoQuestion();
+  </script>
+</body>
+</html>

@@ -41,7 +41,7 @@ function fixture({ extra = false, failPush = false, failDeploy = false, wrongDep
 }
 
 test('source has complete dialogs and valid V8 syntax', async () => {
-  assert.deepEqual(await validateSource(), ['AnswerDialog.html', 'CandidateDialog.html', 'PushNotifications.gs', 'SharedLinks.gs', 'WebApi.gs', 'appsscript.json', 'main.gs']);
+  assert.deepEqual(await validateSource(), ['AnswerDialog.html', 'CandidateDialog.html', 'LoginInfo.gs', 'LoginInfoDialog.html', 'PushNotifications.gs', 'SharedLinks.gs', 'WebApi.gs', 'appsscript.json', 'main.gs']);
 });
 test('invalid config is rejected before calling Google', () => {
   for (const entry of [{...env, AF_SCRIPT_ID: ''}, {...env, AF_DEPLOYMENT_ID: ''}, {...env, CLASPRC_JSON: 'no'}, {...env, GITHUB_SHA: 'bad;command'}]) {

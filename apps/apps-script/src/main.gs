@@ -131,6 +131,7 @@ function onOpen() {
     SpreadsheetApp.getUi().createMenu('日程調整')
         .addItem('回答する', 'showAnswerDialog')
         .addItem('候補日時を管理', 'showCandidateDialog')
+        .addItem('ログイン情報の確認', 'showLoginInfoDialog')
         .addSeparator()
         .addItem('自動更新を設定（管理者）', 'installRolloverTrigger')
         .addToUi();
