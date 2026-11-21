@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 const execute = promisify(execFile);
 export const SOURCE = fileURLToPath(new URL('../../apps/apps-script/dist/', import.meta.url));
 const CLASP = createRequire(import.meta.url).resolve('@google/clasp');
-const REQUIRED = ['main.gs', 'WebApi.gs', 'SharedLinks.gs', 'PushNotifications.gs', 'LoginInfo.gs', 'AnswerDialog.html', 'CandidateDialog.html', 'LoginInfoDialog.html', 'appsscript.json'];
+const REQUIRED = ['FirebaseIdentity.gs', 'Execution.gs', 'Members.gs', 'ScheduleState.gs', 'History.gs', 'BffSignature.gs', 'PushDevices.gs', 'PushTransport.gs', 'PushSchedule.gs', 'PushBroadcast.gs', 'RequestDispatch.gs', 'Config.gs', 'Spreadsheet.gs', 'DateTime.gs', 'SelectedSchedule.gs', 'AnswerCache.gs', 'SheetMenu.gs', 'AnswerData.gs', 'AnswerSave.gs', 'Candidates.gs', 'Rollover.gs', 'Diagnostics.gs', 'main.gs', 'WebApi.gs', 'SharedLinks.gs', 'PushNotifications.gs', 'LoginInfo.gs', 'AnswerDialog.html', 'CandidateDialog.html', 'LoginInfoDialog.html', 'appsscript.json'];
 
 export async function inventory(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -37,7 +37,9 @@ export async function validateSource(directory = SOURCE) {
       }
     }
   }
-  const code = await readFile(join(directory, 'main.gs'), 'utf8');
+  const scripts = await Promise.all(files.filter(file => file.endsWith('.gs')).map(file => readFile(join(directory, file), 'utf8')));
+  new Script(scripts.join('\n'), { filename: 'apps-script-bundle.gs' });
+  const code = await readFile(join(directory, 'Config.gs'), 'utf8');
   if (!code.includes("getProperty('AF_SPREADSHEET_ID')")) throw Error('シートIDはスクリプトプロパティから取得してください。');
   return files;
 }

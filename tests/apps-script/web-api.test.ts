@@ -1,17 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import { readFile } from 'node:fs/promises';
 import { randomUUID, createHash, createHmac } from 'node:crypto';
+import { loadAppsScript } from '../helpers/apps-script.ts';
 import {signRequest} from '../helpers/signature.ts';
 import { isSchedule, isHistory } from '../../packages/contracts/src/afetiria.ts';
 import { isInternalPath } from '../../packages/contracts/src/shared-links.ts';
 
 process.env.TZ = 'Asia/Tokyo';
-const code = await readFile(new URL('../../apps/apps-script/dist/main.gs', import.meta.url), 'utf8');
-const api = await readFile(new URL('../../apps/apps-script/dist/WebApi.gs', import.meta.url), 'utf8');
-const push = await readFile(new URL('../../apps/apps-script/dist/PushNotifications.gs', import.meta.url), 'utf8');
-const links = await readFile(new URL('../../apps/apps-script/dist/SharedLinks.gs', import.meta.url), 'utf8');
+const code = await loadAppsScript();
 const id = n => `m_00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
 const names = ['設定・メンバー', '日程調整', '開催日程', '（管理者用）回答管理', '開催履歴', 'UDM共有リンク'];
 function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}) {
@@ -90,7 +87,7 @@ function fixture({ count = 8, required = false, sheetId = 'fixture-sheet' } = {}
     };}},
     ContentService: {MimeType:{JSON:'json'}, createTextOutput: value => ({setMimeType: () => JSON.parse(value)})},
   });
-  vm.runInContext(code+'\n'+api+'\n'+links+'\n'+push, context);
+  vm.runInContext(code, context);
   writes.length=0; reads=0;
   const jwt = (uid, claims = {}) => `fixture.${Buffer.from(JSON.stringify({aud:'fixture-project',iss:'https://securetoken.google.com/fixture-project',sub:uid,iat:Date.now()/1000,exp:Date.now()/1000+3600,...claims})).toString('base64url')}.signature`;
   const call = (action, payload = {}, token = 'participant', extra = {}) => context.doPost({postData:{contents:JSON.stringify({version:1, requestId:'request_12345678', action, payload,
@@ -543,4 +540,105 @@ test('BFF signature matches the Go BFF, enforces cutover, prevents replay and de
   assert.equal(f.call('af.session',{},token).data.role,'admin');
   const invalid=await envelope();invalid.signature='0'.repeat(64);
   assert.equal(f.call('af.session',{},token,{bff:invalid}).error.code,'AUTH_REQUIRED');
+});
+
+test('sheet menu callbacks and installed rollover triggers keep their existing public names', () => {
+  const f = fixture();
+  const callbacks = [];
+  const alerts = [];
+  const menu = { addItem(_label, callback) { callbacks.push(callback); return this; }, addSeparator() { return this; }, addToUi() {} };
+  f.context.SpreadsheetApp.getUi = () => ({createMenu: () => menu, alert: message => alerts.push(message)});
+  f.context.onOpen();
+  assert.deepEqual(callbacks, ['showAnswerDialog', 'showCandidateDialog', 'showLoginInfoDialog', 'installRolloverTrigger']);
+  callbacks.forEach(callback => assert.equal(typeof f.context[callback], 'function'));
+
+  const rollover = {getHandlerFunction: () => 'checkScheduleRollover'};
+  const notification = {getHandlerFunction: () => 'afCheckPushSafe_'};
+  const removed = [];
+  const installed = [];
+  f.context.ScriptApp.getProjectTriggers = () => [rollover, notification];
+  f.context.ScriptApp.deleteTrigger = trigger => removed.push(trigger);
+  f.context.ScriptApp.newTrigger = name => ({timeBased: () => ({everyMinutes: minutes => ({create: () => installed.push({name, minutes})})})});
+  f.context.installRolloverTrigger();
+  assert.deepEqual(removed, [rollover]);
+  assert.deepEqual(installed, [{name:'checkScheduleRollover', minutes:5}]);
+  assert.equal(alerts.length, 1);
+});
+
+test('dialog entry points preserve cache bypass and save through the split services', () => {
+  const f = fixture();
+  const cache = new Map();
+  f.context.CacheService.getScriptCache = () => ({get: key => cache.get(key) ?? null, put: (key, value) => cache.set(key, value), remove: key => cache.delete(key)});
+  const initial = f.context.getAnswerData();
+  assert.equal(initial.answers['Demo 1'][date], '○');
+  f.sheets.get('（管理者用）回答管理').grid[4][2] = '△';
+  assert.equal(f.context.getAnswerData().answers['Demo 1'][date], '○');
+  assert.equal(f.context.getAnswerData(true).answers['Demo 1'][date], '△');
+  const result = f.context.setAnswer({weekId:'2026-11-16',member:'Demo 1',slot:date,answer:'×'});
+  assert.equal(result.success, true);
+  assert.equal(result.savedCount, 1);
+  assert.equal(f.context.getAnswerData().answers['Demo 1'][date], '×');
+  assert.equal(f.context.getCandidateData().slots[0].key, date);
+});
+
+test('unknown and prototype action names never reach sheet operations', () => {
+  const f = fixture();
+  for (const action of ['__proto__', 'constructor', 'toString', 'af.unknown', '', null, {}, []]) {
+    assert.equal(f.call(action, {}, 'admin').error.code, 'INVALID_REQUEST');
+  }
+  assert.equal(f.reads(), 0);
+  assert.equal(f.writes.length, 0);
+});
+
+test('all protected actions authenticate and admin actions deny participants before reading sheets', () => {
+  const f = fixture();
+  const participant = ['af.session', 'af.read', 'af.answers.save', 'af.history', 'udm.links.share'];
+  const admin = ['af.members.add', 'af.members.required', 'af.candidates.add', 'af.candidates.remove', 'af.confirm', 'af.push.test', 'udm.links.list', 'udm.links.create', 'udm.links.update'];
+  for (const action of [...participant, ...admin]) assert.equal(f.call(action, {}, '').error.code, 'AUTH_REQUIRED');
+  for (const action of admin) assert.equal(f.call(action, {}, 'participant').error.code, 'FORBIDDEN');
+  assert.equal(f.reads(), 0);
+  assert.equal(f.writes.length, 0);
+});
+
+test('shared lock handling preserves timeouts, busy errors and release on failure', () => {
+  const f = fixture();
+  const timeouts = [];
+  let releases = 0;
+  let available = false;
+  f.context.LockService.getScriptLock = () => ({tryLock(timeout) {timeouts.push(timeout);return available;}, releaseLock() {releases++;}});
+  assert.throws(() => f.context.setAnswersBatch(null), /ほかの保存処理が実行中です/);
+  assert.throws(() => f.context.removeCandidate('unknown'), /ほかの処理が実行中です/);
+  assert.equal(f.call('af.read').error.code, 'BUSY');
+  assert.deepEqual(timeouts, [15000,15000,10000]);
+  assert.equal(releases, 0);
+  available = true;
+  assert.throws(() => f.context.setAnswersBatch(null), /回答データが不正です/);
+  assert.throws(() => f.context.removeCandidate('unknown'), /候補日時が見つかりません/);
+  assert.equal(releases, 2);
+  assert.equal(f.writes.length, 0);
+});
+
+test('sparse and batched answer writes preserve other rows and members', () => {
+  for (const indexes of [[0,1,4],[0,2,4,6],Array.from({length:15},(_,index)=>index)]) {
+    const f = fixture();
+    const keys = new Map();
+    for (let index=0; index<16; index++) {
+      const clock = `${String(8+Math.floor(index/2)).padStart(2,'0')}:${index%2 ? '30' : '00'}`;
+      f.set('日程調整', `A${7+index}`, new Date('2026-11-16T00:00:00+09:00'));
+      f.set('日程調整', `B${7+index}`, new Date(`1899-12-30T${clock}:00+09:00`));
+      keys.set(index, `2026-11-16 ${clock}`);
+      f.sheets.get('（管理者用）回答管理').grid[4+index][2] = '△';
+      f.sheets.get('（管理者用）回答管理').grid[4+index][3] = '×';
+    }
+    f.writes.length=0;
+    const result = f.context.setAnswersBatch({weekId:'2026-11-16',member:'Demo 1',changes:indexes.map(index=>({slot:keys.get(index),answer:'○'}))});
+    assert.equal(result.savedCount,indexes.length);
+    for (let index=0;index<16;index++) {
+      assert.equal(f.sheets.get('（管理者用）回答管理').grid[4+index][2], indexes.includes(index) ? '○' : '△');
+      assert.equal(f.sheets.get('（管理者用）回答管理').grid[4+index][3], '×');
+    }
+    const writes = f.writes.filter(write=>write.name==='（管理者用）回答管理');
+    assert.ok(writes.every(write=>write.col===3 && write.width===1));
+    assert.deepEqual(writes.map(write=>write.height), indexes.length===3 ? [2,1] : [54]);
+  }
 });

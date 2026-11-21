@@ -41,7 +41,7 @@ function fixture({ extra = false, failPush = false, failDeploy = false, wrongDep
 }
 
 test('source has complete dialogs and valid V8 syntax', async () => {
-  assert.deepEqual(await validateSource(), ['AnswerDialog.html', 'CandidateDialog.html', 'LoginInfo.gs', 'LoginInfoDialog.html', 'PushNotifications.gs', 'SharedLinks.gs', 'WebApi.gs', 'appsscript.json', 'main.gs']);
+  assert.deepEqual(await validateSource(), ['AnswerCache.gs', 'AnswerData.gs', 'AnswerDialog.html', 'AnswerSave.gs', 'BffSignature.gs', 'CandidateDialog.html', 'Candidates.gs', 'Config.gs', 'DateTime.gs', 'Diagnostics.gs', 'Execution.gs', 'FirebaseIdentity.gs', 'History.gs', 'LoginInfo.gs', 'LoginInfoDialog.html', 'Members.gs', 'PushBroadcast.gs', 'PushDevices.gs', 'PushNotifications.gs', 'PushSchedule.gs', 'PushTransport.gs', 'RequestDispatch.gs', 'Rollover.gs', 'ScheduleState.gs', 'SelectedSchedule.gs', 'SharedLinks.gs', 'SheetMenu.gs', 'Spreadsheet.gs', 'WebApi.gs', 'appsscript.json', 'main.gs']);
 });
 test('invalid config is rejected before calling Google', () => {
   for (const entry of [{...env, AF_SCRIPT_ID: ''}, {...env, AF_DEPLOYMENT_ID: ''}, {...env, CLASPRC_JSON: 'no'}, {...env, GITHUB_SHA: 'bad;command'}]) {
@@ -94,5 +94,16 @@ test('missing or restricted Web app settings stop deployment before any Google c
       await assert.rejects(deploy({mode:'deploy',env,source:temporary,run:mock.run}), /Webアプリの公開設定/);
       assert.equal(mock.calls.length,0);
     }
+  } finally {await rm(temporary,{recursive:true,force:true});}
+});
+
+test('missing split service files stop deployment before any Google call', async () => {
+  const temporary = await mkdtemp(join(tmpdir(), 'udm-split-service-test-'));
+  try {
+    await cp(SOURCE, temporary, {recursive:true});
+    await rm(join(temporary, 'AnswerSave.gs'));
+    const mock = fixture();
+    await assert.rejects(deploy({mode:'deploy',env,source:temporary,run:mock.run}), /ソースが不足/);
+    assert.equal(mock.calls.length,0);
   } finally {await rm(temporary,{recursive:true,force:true});}
 });
