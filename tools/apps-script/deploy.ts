@@ -10,7 +10,57 @@ import { createRequire } from 'node:module';
 const execute = promisify(execFile);
 export const SOURCE = fileURLToPath(new URL('../../apps/apps-script/dist/', import.meta.url));
 const CLASP = createRequire(import.meta.url).resolve('@google/clasp');
-const REQUIRED = ['main.gs', 'WebApi.gs', 'SharedLinks.gs', 'PushNotifications.gs', 'LoginInfo.gs', 'AnswerDialog.html', 'CandidateDialog.html', 'LoginInfoDialog.html', 'appsscript.json'];
+const REQUIRED = [
+  'AnswerCache.gs',
+  'AnswerData.gs',
+  'AnswerDialog.html',
+  'AnswerSave.gs',
+  'BffSignature.gs',
+  'Calendar.gs',
+  'CandidateDialog.html',
+  'Candidates.gs',
+  'CompositionRoot.gs',
+  'Config.gs',
+  'DateTime.gs',
+  'Diagnostics.gs',
+  'Errors.gs',
+  'Execution.gs',
+  'FirebaseIdentity.gs',
+  'History.gs',
+  'HistoryService.gs',
+  'LinkRules.gs',
+  'LinkService.gs',
+  'LoginInfo.gs',
+  'LoginInfoDialog.html',
+  'LoginInfoService.gs',
+  'Members.gs',
+  'NotificationRules.gs',
+  'PushBroadcast.gs',
+  'PushDevices.gs',
+  'PushNotifications.gs',
+  'PushSchedule.gs',
+  'PushService.gs',
+  'PushTransport.gs',
+  'RequestDispatch.gs',
+  'RequestHandler.gs',
+  'Rollover.gs',
+  'RolloverRules.gs',
+  'RolloverService.gs',
+  'ScheduleFacade.gs',
+  'ScheduleRepository.gs',
+  'ScheduleRules.gs',
+  'ScheduleService.gs',
+  'ScheduleState.gs',
+  'SelectedSchedule.gs',
+  'ServiceFacade.gs',
+  'SetupService.gs',
+  'SharedLinks.gs',
+  'SheetMenu.gs',
+  'Spreadsheet.gs',
+  'WebApi.gs',
+  'appsscript.json',
+  'main.gs',
+];
 
 export async function inventory(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -37,7 +87,9 @@ export async function validateSource(directory = SOURCE) {
       }
     }
   }
-  const code = await readFile(join(directory, 'main.gs'), 'utf8');
+  const scripts = await Promise.all(files.filter(file => file.endsWith('.gs')).map(file => readFile(join(directory, file), 'utf8')));
+  new Script(scripts.join('\n'), { filename: 'apps-script-bundle.gs' });
+  const code = await readFile(join(directory, 'Config.gs'), 'utf8');
   if (!code.includes("getProperty('AF_SPREADSHEET_ID')")) throw Error('シートIDはスクリプトプロパティから取得してください。');
   return files;
 }

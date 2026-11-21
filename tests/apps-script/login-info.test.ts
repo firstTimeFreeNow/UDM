@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 
-const source = await readFile(new URL('../../apps/apps-script/dist/LoginInfo.gs', import.meta.url), 'utf8');
+const source = (await Promise.all(['LoginInfo.gs', 'LoginInfoService.gs', 'CompositionRoot.gs', 'ServiceFacade.gs', 'SheetMenu.gs', 'main.gs'].map(name => readFile(new URL('../../apps/apps-script/dist/' + name, import.meta.url), 'utf8')))).join('\n');
 const html = await readFile(new URL('../../apps/apps-script/dist/LoginInfoDialog.html', import.meta.url), 'utf8');
 const initial = {
   AF_LOGIN_INFO_QUESTION: '確認用の質問 <img src=x>',
