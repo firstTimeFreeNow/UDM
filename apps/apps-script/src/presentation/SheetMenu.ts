@@ -54,3 +54,9 @@ function afShowCandidateDialog_() {
     '候補日時の管理',
   );
 }
+
+function afShowLoginInfoDialog_() {
+  afLoginInfoProperties_();
+  const html = HtmlService.createHtmlOutputFromFile('LoginInfoDialog').setWidth(480).setHeight(420);
+  SpreadsheetApp.getUi().showModalDialog(html, 'ログイン情報の確認');
+}

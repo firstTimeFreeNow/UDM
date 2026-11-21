@@ -1,7 +1,7 @@
 /** Bootstrap only: Node strips this file's types; all application/test scripts are emitted JS. */
 import ts from 'typescript';
 import { mkdir, readdir, readFile, writeFile, copyFile, rm, symlink } from 'node:fs/promises';
-import { dirname, join, relative } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -53,15 +53,19 @@ for (const project of ['apps/apps-script', 'tools/sheets-transport/apps-script']
   const dist = join(root, project, 'dist');
   await rm(dist, { recursive: true, force: true });
   await mkdir(dist, { recursive: true });
+  const emitted = new Set<string>();
   for (const file of await walk(directory)) {
     if (!/\.(ts|html|json)$/.test(file)) continue;
     let name = relative(directory, file);
+    if (project === 'apps/apps-script') name = basename(name);
     let text = await readFile(file, 'utf8');
     if (file.endsWith('.ts')) {
       if (file.endsWith('.d.ts')) continue;
       name = name.replace(/\.ts$/, '.gs');
       text = ts.transpileModule(text, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None } }).outputText;
     }
+    if (emitted.has(name)) throw Error('Duplicate Apps Script output: ' + name);
+    emitted.add(name);
     await writeFile(join(dist, name), text);
     const target = join(output, project, 'dist', name);
     await mkdir(dirname(target), { recursive: true });

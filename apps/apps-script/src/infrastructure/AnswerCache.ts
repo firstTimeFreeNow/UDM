@@ -36,20 +36,3 @@ function invalidateAnswerCache_() {
     console.warn('回答キャッシュの破棄に失敗: ' + error);
   }
 }
-
-/**
- * スプレッドシートを開いた時点で先読みする。
- * 他ユーザーの編集中に差分が発生したときは短いTTLと無効化で対処する。
- * トリガー失敗時も手動の回答画面から通常取得できる。
- */
-function afPreloadAnswers_() {
-  if (cachedAnswerData_()) return;
-  const start = Date.now();
-  try {
-    const data = computeAnswerData_();
-    cacheAnswerData_(data);
-    console.log('preloadAnswerData.serverMs=' + (Date.now() - start));
-  } catch (error) {
-    console.warn('プリロードに失敗: ' + error);
-  }
-}

@@ -1,6 +1,6 @@
 function afState_(): AfModels['Schedule'] {
   afAssert_(AF.spreadsheetId, 'CONFIG_REQUIRED');
-  const data = computeAnswerData_(); // Bypass the display cache to pick up sheet edits.
+  const data = afDecorateAnswers_(loadAnswerContext_(), AF.maxParticipants); // Always read the source of truth.
   const rows = sheet_(AF.members).getRange(AF.firstMemberRow, 1, AF.memberCapacity, 4).getValues();
   const members = rows
     .map(function (row, index) {

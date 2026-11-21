@@ -59,19 +59,3 @@ function afFormatSelectedDate_() {
   }
   if (cell.getNumberFormat() !== pattern) cell.setNumberFormat(pattern);
 }
-
-function afConfirm_(payload: AfModels['ConfirmRequest'], state: AfModels['Schedule']) {
-  afAssert_(payload.before === state.confirmed, 'CONFLICT');
-  const slot = state.slots.find(function (item) {
-    return item.key === payload.slot;
-  });
-  afAssert_(slot && slot.judgment === '開催可能', 'INELIGIBLE');
-  const summary = sheet_(AF.summary);
-  const selected = new Date(slot.date + 'T' + slot.time + ':00+09:00');
-  const option = afSelectedOption_(selected);
-  // The old numeric dropdown remains usable until the sheet is switched over.
-  summary.getRange('B3').setValue(option || selected);
-  afFormatSelectedDate_();
-  SpreadsheetApp.flush();
-  afCheckPushSafe_();
-}

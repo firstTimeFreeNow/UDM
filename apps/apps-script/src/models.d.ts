@@ -40,7 +40,7 @@ type AfAnswerContext = {
   weekId: string;
   members: AfSheetMember[];
   slots: AfSheetSlot[];
-  grid: any[][];
+  answers: Record<string, Record<string, unknown>>;
   minParticipants: number;
 };
 type AfAnswerData = {
@@ -90,3 +90,17 @@ type AfRolloverSnapshot = {
   responses: any[][];
   confirmedDateTime: string | null;
 };
+
+type AfMemberRecord = AfSheetMember & { id: string };
+type AfLinkRecord = AfModels['SharedLink'] & { row: number };
+type AfPushCurrent = { key: string; weekId: string; slot: string; upcoming: boolean };
+type AfRolloverState = {
+  week: string;
+  pending: string | null;
+  selection: 'empty' | 'invalid' | 'confirmed';
+  selected: unknown;
+  selectedAt: number | null;
+  deadline: number;
+  validCandidate: boolean;
+};
+type AfWeekArchive = { snapshot(): AfRolloverSnapshot };

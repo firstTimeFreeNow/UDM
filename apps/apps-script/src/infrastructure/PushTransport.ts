@@ -56,3 +56,19 @@ function afPushResponse_(
       }),
   };
 }
+
+/** Gateway adapter: converts domain messages to FCM requests and delivery outcomes. */
+function afFcmDelivery_(): AfPushDelivery {
+  return {
+    validate(token) {
+      const request = afPushRequest_({ token, data: { type: 'registration-check' } }, true);
+      return afPushResponse_(UrlFetchApp.fetch(request.url, request), request).accepted;
+    },
+    send(messages) {
+      const requests = messages.map((message) => afPushRequest_(message, false));
+      return UrlFetchApp.fetchAll(requests).map((response, index) =>
+        afPushResponse_(response, requests[index]),
+      );
+    },
+  };
+}
